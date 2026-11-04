@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { supabase } from '@/lib/supabase';
+import { supabase } from '../../lib/supabase';
 import { QRCodeSVG } from 'qrcode.react';
 import { Search, Loader2, BookOpen, Printer, CheckCircle2, ArrowRight, Flame } from 'lucide-react';
 import Link from 'next/link';
