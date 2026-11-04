@@ -1,6 +1,7 @@
 import './globals.css';
 import Link from 'next/link';
 import { Flame, PlusCircle, BookOpen, Compass } from 'lucide-react';
+import UserNav from '../components/UserNav';
 
 export const metadata = {
   title: 'Wildfire Library | Books in the Wild',
@@ -56,6 +57,8 @@ export default function RootLayout({ children }) {
                 <PlusCircle className="w-3.5 h-3.5" />
                 <span>Register Book</span>
               </Link>
+
+              <UserNav />
             </nav>
           </div>
         </header>
@@ -77,7 +80,7 @@ export default function RootLayout({ children }) {
               <Link href="/how-it-works" className="hover:text-ember-600 transition">
                 How It Works
               </Link>
-              <Link href="/catalog" className="hover:text-ember-600 transition">
+              <Link href="/" className="hover:text-ember-600 transition">
                 Find a Book
               </Link>
               <a
