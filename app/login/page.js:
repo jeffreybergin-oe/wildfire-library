@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { supabase } from '../../lib/supabase';
+import { supabase } from '@/lib/supabase';
 import { Mail, Loader2, CheckCircle2, Flame } from 'lucide-react';
 
 export default function LoginPage() {
@@ -18,10 +18,12 @@ export default function LoginPage() {
     setErrorMessage('');
 
     try {
+      const redirectUrl = typeof window !== 'undefined' ? window.location.origin : 'https://wildfirelibrary.com';
+
       const { error } = await supabase.auth.signInWithOtp({
         email: email.trim(),
         options: {
-          emailRedirectTo: `${typeof window !== 'undefined' ? window.location.origin : 'https://wildfirelibrary.com'}/`,
+          emailRedirectTo: `${redirectUrl}/`,
         },
       });
 
