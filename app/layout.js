@@ -1,7 +1,7 @@
 import './globals.css';
 import Link from 'next/link';
 import { Flame, PlusCircle, BookOpen, Compass } from 'lucide-react';
-import UserNav from '@/components/UserNav';
+
 
 export const metadata = {
   title: 'Wildfire Library | Books in the Wild',
