@@ -1,7 +1,7 @@
 import './globals.css';
 import Link from 'next/link';
 import { Flame, PlusCircle, BookOpen, Compass } from 'lucide-react';
-import UserNav from '../components/UserNav';
+import UserNav from '@/components/UserNav';
 
 export const metadata = {
   title: 'Wildfire Library | Books in the Wild',
@@ -12,11 +12,9 @@ export default function RootLayout({ children }) {
   return (
     <html lang="en">
       <body className="min-h-screen flex flex-col bg-paper-50 text-ink-900 antialiased selection:bg-ember-100 selection:text-ember-800">
-        
         {/* Global Navigation Header */}
         <header className="sticky top-0 z-40 bg-paper-50/90 backdrop-blur-md border-b border-paper-200">
           <div className="max-w-5xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
-            
             {/* Logo / Brand Name */}
             <Link href="/" className="flex items-center gap-2.5 group">
               <div className="w-9 h-9 rounded-xl bg-ember-600 text-white flex items-center justify-center shadow-sm group-hover:bg-ember-700 transition">
@@ -41,7 +39,7 @@ export default function RootLayout({ children }) {
                 <BookOpen className="w-3.5 h-3.5" />
                 <span>Catalog</span>
               </Link>
-              
+
               <Link
                 href="/how-it-works"
                 className="hidden sm:flex items-center gap-1.5 text-xs font-medium text-ink-700 hover:text-ember-600 px-3 py-1.5 rounded-lg transition"
@@ -94,7 +92,6 @@ export default function RootLayout({ children }) {
             </div>
           </div>
         </footer>
-
       </body>
     </html>
   );
