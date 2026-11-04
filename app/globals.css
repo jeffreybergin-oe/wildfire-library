@@ -2,7 +2,20 @@
 @tailwind components;
 @tailwind utilities;
 
+:root {
+  color-scheme: light;
+}
+
 body {
-  background-color: #f8fafc;
-  color: #0f172a;
+  background-color: #fdfbf7; /* Warm, paper-like background */
+  color: #1c1917;
+  font-family: system-ui, -apple-system, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Print utilities for clean 3x3 bookplate cutouts */
+@media print {
+  body {
+    background: transparent !important;
+  }
 }
