@@ -1,58 +1,97 @@
 import './globals.css';
 import Link from 'next/link';
-import { BookOpen, PlusCircle } from 'lucide-react';
+import { Flame, PlusCircle, BookOpen, Compass } from 'lucide-react';
 
 export const metadata = {
-  title: 'Wildfire Library',
-  description: 'A community lending library tracking books on their journey from reader to reader.',
+  title: 'Wildfire Library | Books in the Wild',
+  description: 'A community-powered traveling library tracking books passing from reader to reader.',
 };
 
 export default function RootLayout({ children }) {
   return (
     <html lang="en">
-      <body className="min-h-screen flex flex-col bg-stone-50 text-stone-900 antialiased font-sans">
-        {/* Navigation Header */}
-        <header className="sticky top-0 z-40 bg-white/95 backdrop-blur border-b border-stone-200">
-          <div className="max-w-6xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
-            {/* Logo / Home Link */}
-            <Link 
-              href="/" 
-              className="flex items-center gap-2.5 font-bold tracking-tight text-amber-700 hover:text-amber-800 transition"
-            >
-              <div className="w-8 h-8 rounded-lg bg-amber-600 flex items-center justify-center text-white shadow-sm">
-                <BookOpen className="w-5 h-5" />
+      <body className="min-h-screen flex flex-col bg-paper-50 text-ink-900 antialiased selection:bg-ember-100 selection:text-ember-800">
+        
+        {/* Global Navigation Header */}
+        <header className="sticky top-0 z-40 bg-paper-50/90 backdrop-blur-md border-b border-paper-200">
+          <div className="max-w-5xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
+            
+            {/* Logo / Brand Name */}
+            <Link href="/" className="flex items-center gap-2.5 group">
+              <div className="w-9 h-9 rounded-xl bg-ember-600 text-white flex items-center justify-center shadow-sm group-hover:bg-ember-700 transition">
+                <Flame className="w-5 h-5" />
               </div>
-              <span className="text-xl font-serif text-stone-900 tracking-normal">Wildfire Library</span>
+              <div className="flex flex-col">
+                <span className="font-serif font-bold text-base sm:text-lg tracking-tight text-ink-900 leading-tight">
+                  Wildfire Library
+                </span>
+                <span className="text-[10px] uppercase tracking-widest text-ink-500 font-semibold">
+                  Books In Motion
+                </span>
+              </div>
             </Link>
 
-            {/* Navigation Actions */}
-            <nav className="flex items-center gap-3 sm:gap-4">
-              <Link 
-                href="/" 
-                className="text-sm font-medium text-stone-600 hover:text-stone-900 px-3 py-1.5 rounded-md hover:bg-stone-100 transition"
+            {/* Navigation Links & Action */}
+            <nav className="flex items-center gap-2 sm:gap-4">
+              <Link
+                href="/"
+                className="hidden sm:flex items-center gap-1.5 text-xs font-medium text-ink-700 hover:text-ember-600 px-3 py-1.5 rounded-lg transition"
               >
-                Catalog
+                <BookOpen className="w-3.5 h-3.5" />
+                <span>Catalog</span>
               </Link>
-              <Link 
-                href="/add-book" 
-                className="inline-flex items-center gap-1.5 text-sm font-medium bg-amber-700 hover:bg-amber-800 text-white px-3.5 py-1.5 rounded-lg shadow-sm transition"
+              
+              <Link
+                href="/how-it-works"
+                className="hidden sm:flex items-center gap-1.5 text-xs font-medium text-ink-700 hover:text-ember-600 px-3 py-1.5 rounded-lg transition"
               >
-                <PlusCircle className="w-4 h-4" />
-                <span>Add a Book</span>
+                <Compass className="w-3.5 h-3.5" />
+                <span>How It Works</span>
+              </Link>
+
+              <Link
+                href="/add-book"
+                className="flex items-center gap-1.5 text-xs font-medium bg-ink-900 hover:bg-ember-600 text-white px-3.5 py-2 rounded-lg shadow-sm transition"
+              >
+                <PlusCircle className="w-3.5 h-3.5" />
+                <span>Register Book</span>
               </Link>
             </nav>
           </div>
         </header>
 
-        {/* Page Content */}
-        <main className="flex-1 max-w-6xl w-full mx-auto px-4 sm:px-6 py-8">
+        {/* Main Content Area */}
+        <main className="flex-1 max-w-5xl w-full mx-auto px-4 sm:px-6 py-8 sm:py-12">
           {children}
         </main>
 
-        {/* Footer */}
-        <footer className="border-t border-stone-200 bg-white mt-auto py-6 text-center text-xs text-stone-500">
-          <p>© {new Date().getFullYear()} Wildfire Library. Books passed in the wild.</p>
+        {/* Global Footer */}
+        <footer className="border-t border-paper-200 bg-paper-100 py-8 text-xs text-ink-500">
+          <div className="max-w-5xl mx-auto px-4 sm:px-6 flex flex-col sm:flex-row items-center justify-between gap-4">
+            <div className="flex items-center gap-2">
+              <Flame className="w-4 h-4 text-ember-600" />
+              <span className="font-serif font-semibold text-ink-800">Wildfire Library</span>
+              <span>— Set stories loose in the wild.</span>
+            </div>
+            <div className="flex items-center gap-6">
+              <Link href="/how-it-works" className="hover:text-ember-600 transition">
+                How It Works
+              </Link>
+              <Link href="/catalog" className="hover:text-ember-600 transition">
+                Find a Book
+              </Link>
+              <a
+                href="https://instagram.com/wildfire_library"
+                target="_blank"
+                rel="noreferrer"
+                className="hover:text-ember-600 transition"
+              >
+                Instagram
+              </a>
+            </div>
+          </div>
         </footer>
+
       </body>
     </html>
   );
