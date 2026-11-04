@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useParams } from 'next/navigation';
 import { supabase } from '../../../lib/supabase';
-import { BookOpen, MapPin, Star, MessageSquare, Check, ArrowRight, Loader2, Calendar } from 'lucide-react';
+import { BookOpen, MapPin, Star, Check, ArrowRight, Loader2, BookMarked, CheckCircle2 } from 'lucide-react';
 import Link from 'next/link';
 
 export default function BookDetailPage() {
@@ -11,6 +11,9 @@ export default function BookDetailPage() {
   const [book, setBook] = useState(null);
   const [stops, setStops] = useState([]);
   const [loading, setLoading] = useState(true);
+
+  // Active user action: 'pickup' | 'finish' | null
+  const [selectedAction, setSelectedAction] = useState(null);
 
   // Form State
   const [readerName, setReaderName] = useState('');
@@ -20,25 +23,20 @@ export default function BookDetailPage() {
   const [submitting, setSubmitting] = useState(false);
   const [actionSuccess, setActionSuccess] = useState('');
 
-  // Fetch book and its journey stops
   const loadBookData = async () => {
     if (!id) return;
     setLoading(true);
 
-    // 1. Fetch book details
     const { data: bookData, error: bookError } = await supabase
       .from('books')
       .select('*')
       .eq('id', id)
       .single();
 
-    if (bookError) {
-      console.error('Error fetching book:', bookError);
-    } else {
+    if (!bookError) {
       setBook(bookData);
     }
 
-    // 2. Fetch journey stops
     const { data: stopData, error: stopError } = await supabase
       .from('journey_stops')
       .select('*')
@@ -56,84 +54,55 @@ export default function BookDetailPage() {
     loadBookData();
   }, [id]);
 
-  // Handle "I Just Received This Book"
-  const handleClaimBook = async (e) => {
+  const handleFormSubmit = async (e) => {
     e.preventDefault();
     if (!readerName.trim()) {
-      alert('Please enter your name or handle.');
+      alert('Please enter your name or reader handle.');
       return;
     }
     setSubmitting(true);
 
+    const isPickup = selectedAction === 'pickup';
+    const locValue = locationCity.trim() || (isPickup ? 'Reading nearby' : 'Passed Along');
+
     try {
-      // Create journey stop entry
+      // 1. Insert journey stop (populating both location fields to satisfy any schema)
       const { error: stopError } = await supabase.from('journey_stops').insert([
         {
           book_id: id,
           reader_name: readerName.trim(),
-          location_city: locationCity.trim() || 'Unknown Location',
-          status_event: 'Picked Up',
+          location: locValue,
+          location_city: locValue,
+          status_event: isPickup ? 'Picked Up' : 'Finished & Passed',
+          rating: isPickup ? null : rating,
+          takeaway: isPickup ? null : takeaway.trim(),
         },
       ]);
       if (stopError) throw stopError;
 
-      // Update book status
+      // 2. Update status on books table
+      const newStatus = isPickup ? 'Being Read' : 'Ready for Next Reader';
       const { error: bookError } = await supabase
         .from('books')
-        .update({ status: 'Being Read' })
+        .update({ status: newStatus })
         .eq('id', id);
       if (bookError) throw bookError;
 
-      setActionSuccess('Enjoy your read! Keep this tab open or scan again when you are finished.');
-      setReaderName('');
-      setLocationCity('');
-      loadBookData();
-    } catch (err) {
-      console.error(err);
-      alert(`Error updating book: ${err.message}`);
-    } finally {
-      setSubmitting(false);
-    }
-  };
+      setActionSuccess(
+        isPickup
+          ? 'Happy reading! Come back and scan this page when you are ready to pass it on.'
+          : 'Thank you for leaving your review! Your stop has been logged into this book\'s journey.'
+      );
 
-  // Handle "I Finished This Book"
-  const handleFinishBook = async (e) => {
-    e.preventDefault();
-    if (!readerName.trim()) {
-      alert('Please enter your name.');
-      return;
-    }
-    setSubmitting(true);
-
-    try {
-      // Record completed stop with review
-      const { error: stopError } = await supabase.from('journey_stops').insert([
-        {
-          book_id: id,
-          reader_name: readerName.trim(),
-          location_city: locationCity.trim() || 'Passed Along',
-          rating: rating,
-          takeaway: takeaway.trim(),
-          status_event: 'Finished & Passed',
-        },
-      ]);
-      if (stopError) throw stopError;
-
-      // Flip status back to Ready for Next Reader
-      const { error: bookError } = await supabase
-        .from('books')
-        .update({ status: 'Ready for Next Reader' })
-        .eq('id', id);
-      if (bookError) throw bookError;
-
-      setActionSuccess('Thank you for logging your review! Pass the book along to its next stop.');
+      // Reset form
+      setSelectedAction(null);
       setReaderName('');
       setLocationCity('');
       setTakeaway('');
       loadBookData();
     } catch (err) {
       console.error(err);
-      alert(`Error completing book: ${err.message}`);
+      alert(`Error updating book: ${err.message}`);
     } finally {
       setSubmitting(false);
     }
@@ -160,11 +129,10 @@ export default function BookDetailPage() {
   }
 
   return (
-    <div className="max-w-4xl mx-auto space-y-8">
-      {/* Book Banner Header */}
+    <div className="max-w-3xl mx-auto space-y-8">
+      {/* Book Summary Card */}
       <div className="bg-white border border-stone-200 rounded-2xl p-6 sm:p-8 shadow-sm flex flex-col sm:flex-row gap-6 items-start">
-        {/* Cover Art */}
-        <div className="w-32 sm:w-40 flex-shrink-0 aspect-[2/3] bg-stone-100 rounded-lg overflow-hidden border border-stone-200 flex items-center justify-center">
+        <div className="w-28 sm:w-36 flex-shrink-0 aspect-[2/3] bg-stone-100 rounded-lg overflow-hidden border border-stone-200 flex items-center justify-center">
           {book.cover_image_url ? (
             <img src={book.cover_image_url} alt={book.title} className="w-full h-full object-cover" />
           ) : (
@@ -172,7 +140,6 @@ export default function BookDetailPage() {
           )}
         </div>
 
-        {/* Info */}
         <div className="flex-1 space-y-2">
           <div className="flex flex-wrap items-center gap-2">
             <span className="font-mono text-xs font-bold bg-stone-900 text-white px-2 py-0.5 rounded">
@@ -198,117 +165,149 @@ export default function BookDetailPage() {
             {book.title}
           </h1>
           <p className="text-sm font-medium text-stone-600">by {book.author}</p>
-
           <p className="text-xs text-stone-500 pt-2">
             Tracked {stops.length} journey {stops.length === 1 ? 'stop' : 'stops'} so far.
           </p>
         </div>
       </div>
 
-      {/* Success Banner */}
+      {/* Success Notification */}
       {actionSuccess && (
-        <div className="bg-emerald-50 border border-emerald-200 text-emerald-800 p-4 rounded-xl text-xs flex items-center gap-2">
-          <Check className="w-4 h-4 flex-shrink-0" />
+        <div className="bg-emerald-50 border border-emerald-200 text-emerald-900 p-4 rounded-xl text-xs flex items-center gap-2">
+          <Check className="w-4 h-4 flex-shrink-0 text-emerald-600" />
           <span>{actionSuccess}</span>
         </div>
       )}
 
-      {/* Interactive QR Action Box */}
-      <div className="bg-stone-900 text-white rounded-2xl p-6 sm:p-8 shadow-sm space-y-4">
-        {book.status === 'Ready for Next Reader' ? (
-          <div>
-            <h2 className="text-lg font-semibold tracking-tight">Are you holding this book?</h2>
-            <p className="text-xs text-stone-400 mb-4">
-              Let the community know this book has found a reader. No account needed.
-            </p>
-            <form onSubmit={handleClaimBook} className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <input
-                type="text"
-                required
-                placeholder="Your Name or Reader Handle *"
-                value={readerName}
-                onChange={(e) => setReaderName(e.target.value)}
-                className="px-3.5 py-2 text-xs text-stone-900 bg-white rounded-lg focus:outline-none"
-              />
-              <input
-                type="text"
-                placeholder="Current City / Location (e.g. Syracuse, NY)"
-                value={locationCity}
-                onChange={(e) => setLocationCity(e.target.value)}
-                className="px-3.5 py-2 text-xs text-stone-900 bg-white rounded-lg focus:outline-none"
-              />
-              <button
-                type="submit"
-                disabled={submitting}
-                className="sm:col-span-2 py-2.5 bg-amber-600 hover:bg-amber-700 text-white font-medium text-xs rounded-lg transition disabled:opacity-50"
-              >
-                {submitting ? 'Updating...' : "I'm Reading This Next!"}
-              </button>
-            </form>
-          </div>
-        ) : (
-          <div>
-            <h2 className="text-lg font-semibold tracking-tight">Finished Reading?</h2>
-            <p className="text-xs text-stone-400 mb-4">
-              Leave your rating and favorite takeaway before passing it to the next reader.
-            </p>
-            <form onSubmit={handleFinishBook} className="space-y-3">
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+      {/* Action Selector: Two Choices */}
+      <div className="bg-stone-900 text-white rounded-2xl p-6 sm:p-8 shadow-sm space-y-6">
+        <div>
+          <h2 className="text-lg font-semibold tracking-tight">Are you currently holding this book?</h2>
+          <p className="text-xs text-stone-400 mt-1">
+            Log your reading progress to keep the community journey map alive. No login needed.
+          </p>
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <button
+            type="button"
+            onClick={() => setSelectedAction('pickup')}
+            className={`p-4 rounded-xl border text-left transition flex items-start gap-3 ${
+              selectedAction === 'pickup'
+                ? 'bg-amber-600 border-amber-500 text-white shadow'
+                : 'bg-stone-800 border-stone-700 text-stone-200 hover:bg-stone-750'
+            }`}
+          >
+            <BookMarked className="w-5 h-5 flex-shrink-0 mt-0.5" />
+            <div>
+              <p className="font-semibold text-xs">I just picked this up</p>
+              <p className="text-[11px] text-stone-300 mt-0.5">Let others know this book is actively being read.</p>
+            </div>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setSelectedAction('finish')}
+            className={`p-4 rounded-xl border text-left transition flex items-start gap-3 ${
+              selectedAction === 'finish'
+                ? 'bg-amber-600 border-amber-500 text-white shadow'
+                : 'bg-stone-800 border-stone-700 text-stone-200 hover:bg-stone-750'
+            }`}
+          >
+            <CheckCircle2 className="w-5 h-5 flex-shrink-0 mt-0.5" />
+            <div>
+              <p className="font-semibold text-xs">I just finished it</p>
+              <p className="text-[11px] text-stone-300 mt-0.5">Leave a rating and note for the next reader.</p>
+            </div>
+          </button>
+        </div>
+
+        {/* Dynamic Sub-Question Form */}
+        {selectedAction && (
+          <form onSubmit={handleFormSubmit} className="space-y-4 pt-4 border-t border-stone-800">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div>
+                <label className="block text-[11px] text-stone-300 mb-1">Your Name or Reader Handle *</label>
                 <input
                   type="text"
                   required
-                  placeholder="Your Name *"
+                  placeholder="e.g. Alex S."
                   value={readerName}
                   onChange={(e) => setReaderName(e.target.value)}
-                  className="px-3.5 py-2 text-xs text-stone-900 bg-white rounded-lg focus:outline-none"
-                />
-                <input
-                  type="text"
-                  placeholder="Where are you leaving / passing it? (e.g. Salt City Market)"
-                  value={locationCity}
-                  onChange={(e) => setLocationCity(e.target.value)}
-                  className="px-3.5 py-2 text-xs text-stone-900 bg-white rounded-lg focus:outline-none"
-                />
-              </div>
-
-              <div>
-                <label className="block text-[11px] text-stone-300 mb-1">Your Rating</label>
-                <select
-                  value={rating}
-                  onChange={(e) => setRating(Number(e.target.value))}
-                  className="px-3 py-1.5 text-xs text-stone-900 bg-white rounded-lg focus:outline-none"
-                >
-                  <option value={5}>⭐⭐⭐⭐⭐ (Loved it)</option>
-                  <option value={4}>⭐⭐⭐⭐ (Great read)</option>
-                  <option value={3}>⭐⭐⭐ (Good)</option>
-                  <option value={2}>⭐⭐ (Not for me)</option>
-                  <option value={1}>⭐ (Struggled to finish)</option>
-                </select>
-              </div>
-
-              <div>
-                <textarea
-                  rows={2}
-                  placeholder="Favorite line, takeaway, or note to the next reader..."
-                  value={takeaway}
-                  onChange={(e) => setTakeaway(e.target.value)}
                   className="w-full px-3.5 py-2 text-xs text-stone-900 bg-white rounded-lg focus:outline-none"
                 />
               </div>
 
-              <button
-                type="submit"
-                disabled={submitting}
-                className="w-full py-2.5 bg-amber-600 hover:bg-amber-700 text-white font-medium text-xs rounded-lg transition disabled:opacity-50"
-              >
-                {submitting ? 'Submitting...' : 'Complete Read & Mark Available for Next Reader'}
-              </button>
-            </form>
-          </div>
+              <div>
+                <label className="block text-[11px] text-stone-300 mb-1">
+                  {selectedAction === 'pickup' ? 'Where are you reading it?' : 'Where are you passing it?'}
+                </label>
+                <input
+                  type="text"
+                  placeholder="e.g. Salt City Market or Syracuse, NY"
+                  value={locationCity}
+                  onChange={(e) => setLocationCity(e.target.value)}
+                  className="w-full px-3.5 py-2 text-xs text-stone-900 bg-white rounded-lg focus:outline-none"
+                />
+              </div>
+            </div>
+
+            {/* Additional Questions for Finished Flow */}
+            {selectedAction === 'finish' && (
+              <div className="space-y-3 pt-2">
+                <div>
+                  <label className="block text-[11px] text-stone-300 mb-1">Your Rating</label>
+                  <select
+                    value={rating}
+                    onChange={(e) => setRating(Number(e.target.value))}
+                    className="w-full sm:w-auto px-3 py-2 text-xs text-stone-900 bg-white rounded-lg focus:outline-none"
+                  >
+                    <option value={5}>⭐⭐⭐⭐⭐ (Loved it)</option>
+                    <option value={4}>⭐⭐⭐⭐ (Great read)</option>
+                    <option value={3}>⭐⭐⭐ (Good)</option>
+                    <option value={2}>⭐⭐ (Not for me)</option>
+                    <option value={1}>⭐ (Struggled to finish)</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-[11px] text-stone-300 mb-1">
+                    Favorite quote, takeaway, or note to the next reader (Optional)
+                  </label>
+                  <textarea
+                    rows={3}
+                    placeholder="What did you think of the ending? Any quote that stuck with you?"
+                    value={takeaway}
+                    onChange={(e) => setTakeaway(e.target.value)}
+                    className="w-full px-3.5 py-2 text-xs text-stone-900 bg-white rounded-lg focus:outline-none"
+                  />
+                </div>
+              </div>
+            )}
+
+            <button
+              type="submit"
+              disabled={submitting}
+              className="w-full py-2.5 bg-amber-600 hover:bg-amber-700 text-white font-medium text-xs rounded-lg transition disabled:opacity-50 flex items-center justify-center gap-2"
+            >
+              {submitting ? (
+                <>
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                  <span>Logging your stop...</span>
+                </>
+              ) : (
+                <span>
+                  {selectedAction === 'pickup'
+                    ? 'Start Reading & Mark "Being Read"'
+                    : 'Submit Review & Mark "Ready for Next Reader"'}
+                </span>
+              )}
+            </button>
+          </form>
         )}
       </div>
 
-      {/* Journey Timeline */}
+      {/* Journey Timeline History */}
       <div className="space-y-4">
         <h2 className="text-lg font-serif font-bold text-stone-900">Book Journey History</h2>
         {stops.length === 0 ? (
@@ -333,10 +332,10 @@ export default function BookDetailPage() {
                   </span>
                 </div>
 
-                {stop.location_city && (
+                {(stop.location || stop.location_city) && (
                   <div className="flex items-center gap-1 text-[11px] text-stone-500">
                     <MapPin className="w-3 h-3 text-stone-400" />
-                    <span>{stop.location_city}</span>
+                    <span>{stop.location || stop.location_city}</span>
                   </div>
                 )}
 
