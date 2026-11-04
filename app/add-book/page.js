@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { supabase } from '../../lib/supabase';
+import { supabase } from '@/lib/supabase';
 import { QRCodeSVG } from 'qrcode.react';
 import { Search, Loader2, BookOpen, Printer, CheckCircle2, ArrowRight, Flame } from 'lucide-react';
 import Link from 'next/link';
@@ -74,6 +74,9 @@ export default function AddBookPage() {
     setSubmitting(true);
 
     try {
+      // Check current user session for attribution
+      const { data: { user } } = await supabase.auth.getUser();
+
       // Find the highest WF- number to auto-increment
       const { data: latestBooks, error: fetchError } = await supabase
         .from('books')
@@ -86,7 +89,7 @@ export default function AddBookPage() {
 
       let nextNumber = 1;
       if (latestBooks && latestBooks.length > 0) {
-        const lastId = latestBooks[0].id; // e.g. "WF-017"
+        const lastId = latestBooks[0].id;
         const numPart = parseInt(lastId.replace('WF-', ''), 10);
         if (!isNaN(numPart)) {
           nextNumber = numPart + 1;
@@ -105,6 +108,8 @@ export default function AddBookPage() {
           cover_image_url: bookData.cover_image_url || null,
           genre: bookData.genre || 'Literature',
           status: 'Ready for Next Reader',
+          registered_by_user_id: user?.id || null,
+          registered_by_name: user?.user_metadata?.full_name || user?.email || 'Wildfire Community',
         },
       ]);
 
@@ -168,7 +173,6 @@ export default function AddBookPage() {
               id="bookplate-badge"
               className="w-full max-w-[320px] mx-auto aspect-square bg-[#fdfbf7] border-2 border-dashed border-stone-800 rounded-xl p-5 flex flex-col justify-between text-center shadow-sm select-none"
             >
-              {/* Header: Prominent Brand Typography */}
               <div className="space-y-0.5">
                 <div className="flex items-center justify-center gap-1.5 text-stone-900">
                   <Flame className="w-5 h-5 text-amber-600 fill-amber-500" />
@@ -181,7 +185,6 @@ export default function AddBookPage() {
                 </p>
               </div>
 
-              {/* Centered QR Code with Embedded Central Logo */}
               <div className="flex flex-col items-center justify-center my-auto">
                 <div className="p-2.5 bg-white border border-stone-300 rounded-xl shadow-xs">
                   <QRCodeSVG
@@ -202,7 +205,6 @@ export default function AddBookPage() {
                 </span>
               </div>
 
-              {/* Instructions Footer */}
               <div className="space-y-1 border-t border-stone-200 pt-2">
                 <p className="text-[11px] font-bold text-stone-900 leading-tight">
                   Scan to Log • Read • Pass Along
@@ -217,6 +219,7 @@ export default function AddBookPage() {
           <div className="flex flex-col sm:flex-row items-center justify-center gap-3 pt-2">
             <button
               onClick={handlePrint}
+              type="button"
               className="w-full sm:w-auto px-5 py-2.5 bg-stone-900 hover:bg-stone-800 text-white text-xs font-medium rounded-lg flex items-center justify-center gap-2 transition"
             >
               <Printer className="w-4 h-4" />
@@ -238,6 +241,7 @@ export default function AddBookPage() {
                 setBookData(null);
                 setIsbn('');
               }}
+              type="button"
               className="text-xs text-stone-500 hover:underline"
             >
               Register another book
@@ -245,7 +249,6 @@ export default function AddBookPage() {
           </div>
         </div>
       ) : (
-        /* Intake Form State */
         <div className="space-y-6">
           <div>
             <h1 className="text-2xl font-serif font-bold text-stone-900">Register a Traveling Book</h1>
@@ -254,7 +257,6 @@ export default function AddBookPage() {
             </p>
           </div>
 
-          {/* ISBN Search Bar */}
           <form onSubmit={handleLookup} className="flex gap-2">
             <input
               type="text"
@@ -279,7 +281,6 @@ export default function AddBookPage() {
             </p>
           )}
 
-          {/* Metadata Review / Manual Input Form */}
           {bookData && (
             <div className="bg-white border border-stone-200 rounded-xl p-5 shadow-sm space-y-4">
               <h2 className="text-xs font-bold uppercase tracking-wider text-stone-600">
@@ -332,6 +333,7 @@ export default function AddBookPage() {
               <button
                 onClick={handleRegisterBook}
                 disabled={submitting}
+                type="button"
                 className="w-full py-2.5 bg-amber-600 hover:bg-amber-700 text-white text-xs font-semibold rounded-lg transition disabled:opacity-50 flex items-center justify-center gap-2"
               >
                 {submitting ? (
