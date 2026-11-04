@@ -10,18 +10,27 @@ export default function UserNav() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // 1. Get initial user session
+    let mounted = true;
+
+    // Get current session
     supabase.auth.getUser().then(({ data: { user } }) => {
-      setUser(user);
-      setLoading(false);
+      if (mounted) {
+        setUser(user);
+        setLoading(false);
+      }
     });
 
-    // 2. Listen for auth state changes (login, logout)
+    // Listen for auth state changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      setUser(session?.user ?? null);
+      if (mounted) {
+        setUser(session?.user ?? null);
+      }
     });
 
-    return () => subscription.unsubscribe();
+    return () => {
+      mounted = false;
+      subscription?.unsubscribe();
+    };
   }, []);
 
   const handleSignOut = async () => {
@@ -30,7 +39,7 @@ export default function UserNav() {
   };
 
   if (loading) {
-    return <div className="w-16 h-7 bg-paper-200 animate-pulse rounded-lg" />;
+    return <div className="w-16 h-7 bg-paper-200/50 animate-pulse rounded-lg" />;
   }
 
   if (!user) {
@@ -49,10 +58,13 @@ export default function UserNav() {
     <div className="flex items-center gap-2">
       <div className="flex items-center gap-1.5 bg-paper-200/60 px-2.5 py-1 rounded-lg text-xs font-medium text-ink-800">
         <User className="w-3.5 h-3.5 text-ember-600" />
-        <span className="max-w-[120px] truncate">{user.email?.split('@')[0]}</span>
+        <span className="max-w-[120px] truncate">
+          {user.user_metadata?.full_name || user.email?.split('@')[0]}
+        </span>
       </div>
       <button
         onClick={handleSignOut}
+        type="button"
         title="Sign Out"
         className="p-1.5 text-ink-500 hover:text-ember-600 rounded-lg hover:bg-paper-200 transition"
       >
