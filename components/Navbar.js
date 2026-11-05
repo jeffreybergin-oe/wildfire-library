@@ -10,13 +10,15 @@ export default function Navbar() {
   const [profile, setProfile] = useState(null);
 
   useEffect(() => {
-    // 1. Check current session
+    // Check initial active session
     supabase.auth.getSession().then(({ data: { session } }) => {
       setUser(session?.user ?? null);
-      if (session?.user) fetchProfile(session.user.id);
+      if (session?.user) {
+        fetchProfile(session.user.id);
+      }
     });
 
-    // 2. Listen for login / logout events
+    // Real-time listener for sign-in / sign-out state changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       setUser(session?.user ?? null);
       if (session?.user) {
@@ -34,8 +36,11 @@ export default function Navbar() {
       .from('profiles')
       .select('display_name, avatar_url')
       .eq('id', userId)
-      .single();
-    if (data) setProfile(data);
+      .maybeSingle();
+
+    if (data) {
+      setProfile(data);
+    }
   }
 
   const handleSignOut = async () => {
@@ -47,33 +52,38 @@ export default function Navbar() {
     <header className="border-b border-stone-200 bg-white sticky top-0 z-50">
       <div className="max-w-5xl mx-auto px-4 h-16 flex items-center justify-between">
         <Link href="/" className="flex items-center gap-2 font-serif text-lg font-bold text-stone-900">
-          <span className="w-8 h-8 rounded-lg bg-amber-600 text-white flex items-center justify-center">
+          <span className="w-8 h-8 rounded-lg bg-amber-600 text-white flex items-center justify-center shadow-sm">
             <Flame className="w-4 h-4" />
           </span>
           Wildfire Library
         </Link>
 
-        <nav className="flex items-center gap-6 text-sm font-medium text-stone-600">
-          <Link href="/catalog" className="hover:text-stone-900 transition">Catalog</Link>
-          <Link href="/add-book" className="hover:text-stone-900 transition">Register Book</Link>
+        <nav className="flex items-center gap-5 text-sm font-medium text-stone-600">
+          <Link href="/catalog" className="hover:text-stone-900 transition">
+            Catalog
+          </Link>
+          <Link href="/add-book" className="hover:text-stone-900 transition">
+            Register Book
+          </Link>
 
           {user ? (
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-3 pl-2 border-l border-stone-200">
               <Link
                 href="/profile"
                 className="flex items-center gap-2 bg-stone-100 hover:bg-stone-200 text-stone-800 px-3 py-1.5 rounded-full transition text-xs font-semibold"
+                title="Edit Curator Profile"
               >
                 {profile?.avatar_url ? (
-                  <span className="text-base">{profile.avatar_url}</span>
+                  <span className="text-sm leading-none">{profile.avatar_url}</span>
                 ) : (
-                  <User className="w-3.5 h-3.5" />
+                  <User className="w-3.5 h-3.5 text-stone-600" />
                 )}
                 <span>{profile?.display_name || user.email?.split('@')[0]}</span>
               </Link>
               <button
                 onClick={handleSignOut}
                 title="Sign out"
-                className="text-stone-400 hover:text-stone-700 transition"
+                className="text-stone-400 hover:text-stone-700 transition p-1 rounded-md"
               >
                 <LogOut className="w-4 h-4" />
               </button>
@@ -81,7 +91,7 @@ export default function Navbar() {
           ) : (
             <Link
               href="/login"
-              className="bg-stone-900 hover:bg-amber-600 text-white px-3.5 py-1.5 rounded-lg text-xs font-semibold transition"
+              className="bg-stone-900 hover:bg-amber-600 text-white px-3.5 py-1.5 rounded-lg text-xs font-semibold transition shadow-sm"
             >
               Sign In
             </Link>
