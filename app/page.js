@@ -2,178 +2,356 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { supabase } from '../lib/supabase';
-import { Search, Book, Sparkles, Filter } from 'lucide-react';
+import { supabase } from '../../lib/supabase';
+import { 
+  BookOpen, 
+  MapPin, 
+  BookMarked, 
+  CheckCircle2, 
+  Printer, 
+  Calendar, 
+  Loader2, 
+  Flame, 
+  Sparkles, 
+  UserCheck 
+} from 'lucide-react';
 
-const GENRES = [
-  'All Genres',
-  'Fiction & Literature',
-  'Non-Fiction',
-  'Personal Growth / Business',
-  'Mystery / Thriller',
-  'Sci-Fi / Fantasy',
-  'Biography / Memoir',
-];
-
-export default function CatalogPage() {
-  const [books, setBooks] = useState([]);
+export default function ProfilePage() {
   const [loading, setLoading] = useState(true);
-  const [searchQuery, setSearchQuery] = useState('');
-  const [genreFilter, setGenreFilter] = useState('All Genres');
+  const [profile, setProfile] = useState(null);
+  const [releasedBooks, setReleasedBooks] = useState([]);
+  const [readingStops, setReadingStops] = useState([]);
+  const [activeTab, setActiveTab] = useState('released'); // 'released' | 'log'
+
+  // Pre-seeded curator selection if unauthenticated
+  const [curatorsList, setCuratorsList] = useState([]);
+  const [selectedCuratorEmail, setSelectedCuratorEmail] = useState('');
 
   useEffect(() => {
-    async function fetchBooks() {
+    async function loadDashboard() {
       setLoading(true);
-      const { data, error } = await supabase
-        .from('books')
-        .select('*')
-        .order('created_at', { ascending: false });
 
-      if (error) {
-        console.error('Error fetching books:', error);
-      } else {
-        setBooks(data || []);
+      try {
+        // 1. Fetch available curators for easy switching
+        const { data: allProfiles } = await supabase
+          .from('profiles')
+          .select('*')
+          .order('display_name', { ascending: true });
+
+        if (allProfiles && allProfiles.length > 0) {
+          setCuratorsList(allProfiles);
+        }
+
+        // 2. Check for active Supabase Auth user
+        const { data: { user } } = await supabase.auth.getUser();
+
+        let currentEmail = user?.email || selectedCuratorEmail;
+
+        // If no auth user and no manually selected curator, default to the first profile or Jeffrey
+        if (!currentEmail && allProfiles && allProfiles.length > 0) {
+          const defaultCurator = allProfiles.find(p => p.email === 'jeffrey.bergin@gmail.com') || allProfiles[0];
+          currentEmail = defaultCurator.email;
+        }
+
+        if (currentEmail) {
+          setSelectedCuratorEmail(currentEmail);
+
+          // Get profile
+          const { data: profData } = await supabase
+            .from('profiles')
+            .select('*')
+            .eq('email', currentEmail)
+            .maybeSingle();
+
+          setProfile(profData || { email: currentEmail, display_name: currentEmail.split('@')[0], home_base: 'Central NY' });
+
+          const curatorName = profData?.display_name || currentEmail.split('@')[0];
+
+          // 3. Fetch books released by this curator (matching curator_name or email)
+          const { data: booksData } = await supabase
+            .from('books')
+            .select('*')
+            .or(`curator_name.ilike.%${curatorName}%,curator_name.eq.${currentEmail}`)
+            .order('created_at', { ascending: false });
+
+          setReleasedBooks(booksData || []);
+
+          // 4. Fetch journey stops logged by this reader
+          const { data: stopsData } = await supabase
+            .from('journey_stops')
+            .select('*')
+            .or(`reader_email.eq.${currentEmail},reader_name.ilike.%${curatorName}%`)
+            .order('created_at', { ascending: false });
+
+          setReadingStops(stopsData || []);
+        }
+      } catch (err) {
+        console.error('Error loading curator profile:', err);
+      } finally {
+        setLoading(false);
       }
-      setLoading(false);
     }
 
-    fetchBooks();
-  }, []);
+    loadDashboard();
+  }, [selectedCuratorEmail]);
 
-  const filteredBooks = books.filter((book) => {
-    const bookId = book.book_id || book.id || '';
-    const matchesSearch =
-      book.title?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      book.author?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      bookId.toLowerCase().includes(searchQuery.toLowerCase());
-
-    const matchesGenre =
-      genreFilter === 'All Genres' || book.genre === genreFilter;
-
-    return matchesSearch && matchesGenre;
-  });
+  if (loading) {
+    return (
+      <div className="py-24 text-center text-stone-500 text-sm flex flex-col items-center justify-center gap-2">
+        <Loader2 className="w-6 h-6 animate-spin text-amber-600" />
+        <span>Loading curator dashboard...</span>
+      </div>
+    );
+  }
 
   return (
-    <div className="space-y-8 max-w-6xl mx-auto px-4 py-8">
-      {/* Hero Intro */}
-      <div className="text-center max-w-2xl mx-auto space-y-2 pt-2">
-        <h1 className="text-3xl sm:text-4xl font-serif font-bold text-stone-900 tracking-tight">
-          Books Passed in the Wild
-        </h1>
-        <p className="text-stone-600 text-sm sm:text-base">
-          Track stories as they travel from reader to reader. Pick up an available book or check on one you set free.
-        </p>
-      </div>
+    <div className="max-w-5xl mx-auto px-4 py-8 space-y-8">
+      {/* Curator Identity Header */}
+      <div className="bg-white border border-stone-200 rounded-3xl p-6 sm:p-8 shadow-xs flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
+        <div className="flex items-center gap-4">
+          <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-2xl bg-amber-100/70 border border-amber-200 flex items-center justify-center text-3xl sm:text-4xl shadow-inner shrink-0">
+            {profile?.avatar_url || '🔥'}
+          </div>
 
-      {/* Search & Genre Filters */}
-      <div className="flex flex-col gap-4 max-w-4xl mx-auto">
-        {/* Search Bar */}
-        <div className="relative w-full">
-          <Search className="absolute left-3.5 top-3 w-4 h-4 text-stone-400" />
-          <input
-            type="text"
-            placeholder="Search by title, author, or Book ID (e.g. WF-1042)..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full pl-10 pr-4 py-2.5 text-sm bg-white border border-stone-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-amber-600 focus:border-transparent shadow-xs transition"
-          />
+          <div className="space-y-1">
+            <div className="flex items-center gap-2">
+              <h1 className="text-2xl sm:text-3xl font-serif font-bold text-stone-900">
+                {profile?.display_name || 'Curator'}
+              </h1>
+              <span className="bg-stone-900 text-white text-[10px] font-mono uppercase tracking-wider px-2 py-0.5 rounded-md font-bold">
+                Curator
+              </span>
+            </div>
+
+            <p className="text-xs text-stone-500 flex items-center gap-1.5">
+              <MapPin className="w-3.5 h-3.5 text-stone-400" />
+              <span>{profile?.home_base || 'New York'}</span>
+              <span className="text-stone-300">•</span>
+              <span className="font-mono text-stone-400">{profile?.email}</span>
+            </p>
+          </div>
         </div>
 
-        {/* 6 Genre Filter Badges */}
-        <div className="flex items-center gap-2 overflow-x-auto w-full pb-2 no-scrollbar">
-          {GENRES.map((genre) => (
-            <button
-              key={genre}
-              type="button"
-              onClick={() => setGenreFilter(genre)}
-              className={`px-3 py-1.5 text-xs font-medium rounded-full transition whitespace-nowrap cursor-pointer ${
-                genreFilter === genre
-                  ? 'bg-stone-900 text-white shadow-xs'
-                  : 'bg-white border border-stone-200 text-stone-600 hover:bg-stone-100'
-              }`}
+        {/* Quick Curator Switcher dropdown (handy for testing your 6 seeded users) */}
+        {curatorsList.length > 0 && (
+          <div className="w-full md:w-auto flex items-center gap-2 bg-stone-50 p-2 rounded-xl border border-stone-200">
+            <UserCheck className="w-4 h-4 text-stone-500 shrink-0 ml-1" />
+            <select
+              value={selectedCuratorEmail}
+              onChange={(e) => setSelectedCuratorEmail(e.target.value)}
+              className="text-xs bg-transparent text-stone-800 font-medium focus:outline-none cursor-pointer pr-2"
             >
-              {genre}
-            </button>
-          ))}
+              {curatorsList.map((c) => (
+                <option key={c.id || c.email} value={c.email}>
+                  Viewing as: {c.display_name} ({c.home_base})
+                </option>
+              ))}
+            </select>
+          </div>
+        )}
+      </div>
+
+      {/* Impact Metrics Row */}
+      <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
+        <div className="bg-white border border-stone-200 rounded-2xl p-5 shadow-xs">
+          <p className="text-[11px] font-bold uppercase tracking-wider text-stone-400">Books Released</p>
+          <div className="text-2xl sm:text-3xl font-serif font-bold text-stone-900 mt-1 flex items-baseline gap-1.5">
+            <span>{releasedBooks.length}</span>
+            <span className="text-xs font-normal text-stone-500 font-sans">in circulation</span>
+          </div>
+        </div>
+
+        <div className="bg-white border border-stone-200 rounded-2xl p-5 shadow-xs">
+          <p className="text-[11px] font-bold uppercase tracking-wider text-stone-400">Journeys Logged</p>
+          <div className="text-2xl sm:text-3xl font-serif font-bold text-amber-600 mt-1 flex items-baseline gap-1.5">
+            <span>{readingStops.length}</span>
+            <span className="text-xs font-normal text-stone-500 font-sans">stops</span>
+          </div>
+        </div>
+
+        <div className="bg-white border border-stone-200 rounded-2xl p-5 shadow-xs col-span-2 sm:col-span-1">
+          <p className="text-[11px] font-bold uppercase tracking-wider text-stone-400">Library Role</p>
+          <div className="text-sm font-semibold text-stone-800 mt-2 flex items-center gap-1.5">
+            <Flame className="w-4 h-4 text-amber-600 fill-amber-600" />
+            <span>Wildfire Spark Keeper</span>
+          </div>
         </div>
       </div>
 
-      {/* Book Grid */}
-      {loading ? (
-        <div className="py-20 text-center text-stone-400 text-sm flex flex-col items-center justify-center gap-2">
-          <div className="w-6 h-6 border-2 border-stone-300 border-t-amber-600 rounded-full animate-spin" />
-          <span>Loading the library catalog...</span>
-        </div>
-      ) : filteredBooks.length === 0 ? (
-        <div className="py-16 text-center border-2 border-dashed border-stone-200 rounded-2xl max-w-md mx-auto p-8 space-y-3">
-          <Book className="w-8 h-8 text-stone-400 mx-auto" />
-          <p className="text-stone-700 font-medium text-sm">No books found</p>
-          <p className="text-stone-500 text-xs">
-            Try adjusting your search terms or genre filter.
-          </p>
-        </div>
-      ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-          {filteredBooks.map((book) => {
-            const displayId = book.book_id || book.id;
-            const coverImage = book.cover_image || book.cover_image_url;
+      {/* Navigation Tabs */}
+      <div className="flex border-b border-stone-200 gap-6">
+        <button
+          type="button"
+          onClick={() => setActiveTab('released')}
+          className={`pb-3 text-sm font-semibold transition cursor-pointer relative ${
+            activeTab === 'released'
+              ? 'text-stone-900 border-b-2 border-stone-900'
+              : 'text-stone-400 hover:text-stone-600'
+          }`}
+        >
+          My Released Books ({releasedBooks.length})
+        </button>
+        <button
+          type="button"
+          onClick={() => setActiveTab('log')}
+          className={`pb-3 text-sm font-semibold transition cursor-pointer relative ${
+            activeTab === 'log'
+              ? 'text-stone-900 border-b-2 border-stone-900'
+              : 'text-stone-400 hover:text-stone-600'
+          }`}
+        >
+          My Reading History ({readingStops.length})
+        </button>
+      </div>
 
-            return (
-              <Link
-                key={displayId}
-                href={`/book/${displayId}`}
-                className="group bg-white border border-stone-200 rounded-2xl overflow-hidden shadow-xs hover:shadow-md transition flex flex-col cursor-pointer"
-              >
-                {/* Cover Art Area */}
-                <div className="aspect-[2/3] w-full bg-stone-100 relative overflow-hidden flex items-center justify-center">
-                  {coverImage ? (
-                    <img
-                      src={coverImage}
-                      alt={book.title}
-                      className="w-full h-full object-cover group-hover:scale-105 transition duration-300"
-                    />
-                  ) : (
-                    <div className="flex flex-col items-center justify-center text-stone-400 p-4 text-center">
-                      <Book className="w-10 h-10 mb-2 stroke-[1.5]" />
-                      <span className="text-xs">No cover image</span>
+      {/* TAB 1: My Released Books */}
+      {activeTab === 'released' && (
+        <div className="space-y-4">
+          {releasedBooks.length === 0 ? (
+            <div className="bg-white border-2 border-dashed border-stone-200 rounded-2xl p-12 text-center max-w-md mx-auto space-y-3">
+              <BookOpen className="w-8 h-8 text-stone-400 mx-auto" />
+              <p className="text-stone-800 font-medium text-sm">No books released yet</p>
+              <p className="text-stone-500 text-xs">
+                Register a new book with its ISBN to generate a 3" × 3" QR bookplate and release it into the wild.
+              </p>
+              <div className="pt-2">
+                <Link
+                  href="/add-book"
+                  className="inline-block px-4 py-2 bg-stone-900 hover:bg-amber-600 text-white text-xs font-semibold rounded-xl transition"
+                >
+                  Release Your First Book
+                </Link>
+              </div>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
+              {releasedBooks.map((book) => {
+                const displayId = book.book_id || book.id;
+                const coverImage = book.cover_image || book.cover_image_url;
+
+                return (
+                  <div
+                    key={displayId}
+                    className="bg-white border border-stone-200 rounded-2xl overflow-hidden shadow-xs hover:shadow-md transition flex flex-col justify-between"
+                  >
+                    <div className="p-4 flex gap-4">
+                      <div className="w-20 aspect-[2/3] bg-stone-100 rounded-lg overflow-hidden border border-stone-200 flex items-center justify-center shrink-0">
+                        {coverImage ? (
+                          <img src={coverImage} alt={book.title} className="w-full h-full object-cover" />
+                        ) : (
+                          <BookOpen className="w-6 h-6 text-stone-400" />
+                        )}
+                      </div>
+
+                      <div className="space-y-1 flex-1 min-w-0">
+                        <div className="flex items-center gap-1.5">
+                          <span className="font-mono text-[10px] font-bold bg-stone-900 text-white px-1.5 py-0.5 rounded">
+                            {displayId}
+                          </span>
+                          <span
+                            className={`text-[10px] font-medium px-2 py-0.5 rounded-full ${
+                              book.status === 'Ready for Next Reader'
+                                ? 'bg-emerald-100 text-emerald-800'
+                                : 'bg-amber-100 text-amber-800'
+                            }`}
+                          >
+                            {book.status || 'In the Wild'}
+                          </span>
+                        </div>
+
+                        <h3 className="font-serif font-bold text-stone-900 text-sm leading-snug line-clamp-2 pt-1">
+                          {book.title}
+                        </h3>
+                        <p className="text-[11px] text-stone-600 line-clamp-1">{book.author}</p>
+                        {book.release_location && (
+                          <p className="text-[10px] text-stone-400 flex items-center gap-1 pt-1">
+                            <MapPin className="w-3 h-3 text-stone-300" />
+                            {book.release_location}
+                          </p>
+                        )}
+                      </div>
                     </div>
-                  )}
 
-                  {/* Bookplate Badge */}
-                  <span className="absolute top-2.5 left-2.5 bg-stone-900/85 backdrop-blur text-white text-[11px] font-mono font-bold px-2 py-0.5 rounded-lg shadow-xs">
-                    {displayId}
-                  </span>
-                </div>
+                    <div className="p-3 bg-stone-50 border-t border-stone-100 flex items-center justify-between text-xs">
+                      <Link
+                        href={`/book/${displayId}`}
+                        className="text-amber-700 hover:text-amber-800 font-semibold"
+                      >
+                        View Journey →
+                      </Link>
+                      <Link
+                        href={`/book/${displayId}`}
+                        className="text-stone-500 hover:text-stone-800 inline-flex items-center gap-1 text-[11px]"
+                      >
+                        <Printer className="w-3 h-3" />
+                        Print Plate
+                      </Link>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      )}
 
-                {/* Book Details */}
-                <div className="p-4 flex flex-col flex-1 justify-between gap-3">
+      {/* TAB 2: My Reading History */}
+      {activeTab === 'log' && (
+        <div className="space-y-4">
+          {readingStops.length === 0 ? (
+            <div className="bg-white border-2 border-dashed border-stone-200 rounded-2xl p-12 text-center max-w-md mx-auto space-y-3">
+              <BookMarked className="w-8 h-8 text-stone-400 mx-auto" />
+              <p className="text-stone-800 font-medium text-sm">No reading stops recorded</p>
+              <p className="text-stone-500 text-xs">
+                When you pick up or finish a book from the library, log your stop to keep the journey history alive.
+              </p>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {readingStops.map((stop) => (
+                <div
+                  key={stop.id}
+                  className="bg-white border border-stone-200 rounded-2xl p-5 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-4"
+                >
                   <div className="space-y-1.5">
-                    <div className="flex items-center gap-1.5">
-                      <span className="inline-block w-2 h-2 rounded-full bg-emerald-500" />
-                      <span className="text-[11px] font-medium text-stone-600">
-                        {book.status || 'In the Wild'}
+                    <div className="flex items-center gap-2">
+                      <Link
+                        href={`/book/${stop.book_id}`}
+                        className="font-mono text-xs font-bold text-amber-700 hover:underline"
+                      >
+                        {stop.book_id}
+                      </Link>
+                      <span className="text-[10px] bg-stone-100 text-stone-600 px-2 py-0.5 rounded font-mono font-medium">
+                        {stop.status_event}
                       </span>
+                      {stop.rating && (
+                        <span className="text-amber-500 text-xs">
+                          {'★'.repeat(stop.rating)}
+                        </span>
+                      )}
                     </div>
-                    <h3 className="font-serif font-bold text-stone-900 text-base leading-snug line-clamp-2 group-hover:text-amber-700 transition">
-                      {book.title}
-                    </h3>
-                    <p className="text-xs text-stone-600 line-clamp-1">
-                      {book.author}
-                    </p>
+
+                    {(stop.location || stop.location_city) && (
+                      <p className="text-xs text-stone-500 flex items-center gap-1">
+                        <MapPin className="w-3.5 h-3.5 text-stone-400" />
+                        <span>{stop.location || stop.location_city}</span>
+                      </p>
+                    )}
+
+                    {stop.takeaway && (
+                      <p className="text-xs text-stone-700 italic bg-stone-50 p-2.5 rounded-lg border border-stone-100">
+                        "{stop.takeaway}"
+                      </p>
+                    )}
                   </div>
 
-                  <div className="pt-2 border-t border-stone-100 flex items-center justify-between text-[11px] text-stone-500">
-                    <span className="truncate max-w-[140px] font-medium">
-                      {book.genre || 'General'}
-                    </span>
-                    <span className="text-amber-700 font-semibold group-hover:underline shrink-0">
-                      View Journey →
-                    </span>
+                  <div className="text-right sm:shrink-0 text-xs text-stone-400">
+                    {new Date(stop.created_at).toLocaleDateString()}
                   </div>
                 </div>
-              </Link>
-            );
-          })}
+              ))}
+            </div>
+          )}
         </div>
       )}
     </div>
