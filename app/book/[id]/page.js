@@ -101,20 +101,27 @@ export default function BookDetailPage() {
 
         setBook(bookData);
 
-        // 2. Fetch journey stops safely
+        // 2. Fetch journey stops safely with created_at fallback
         try {
           const targetId = bookData.id || bookData.book_id || cleanParam;
-          const { data: stopsData, error: stopsError } = await supabase
+          
+          let { data: stopsData, error: stopsError } = await supabase
             .from('journey_stops')
             .select('*')
             .eq('book_id', targetId)
             .order('created_at', { ascending: false });
 
-          if (!stopsError && stopsData) {
-            setStops(stopsData);
-          } else {
-            setStops([]);
+          // If created_at is missing from schema cache, fetch unordered
+          if (stopsError) {
+            console.warn('Falling back to unordered stops query:', stopsError.message);
+            const fallback = await supabase
+              .from('journey_stops')
+              .select('*')
+              .eq('book_id', targetId);
+            stopsData = fallback.data;
           }
+
+          setStops(stopsData || []);
         } catch (stopErr) {
           console.warn('Could not load stops:', stopErr);
           setStops([]);
@@ -138,7 +145,7 @@ export default function BookDetailPage() {
       const activeBookId = book.id || book.book_id;
       const isJustPickedUp = newStop.status_event === 'Just Picked Up Book';
 
-      const payload = {
+      const basePayload = {
         book_id: activeBookId,
         reader_name: newStop.reader_name.trim() || 'Anonymous Reader',
         reader_email: newStop.reader_email.trim().toLowerCase() || null,
@@ -146,16 +153,29 @@ export default function BookDetailPage() {
         location: newStop.location.trim() || null,
         takeaway: isJustPickedUp ? null : newStop.takeaway.trim() || null,
         rating: isJustPickedUp ? null : Number(newStop.rating),
-        created_at: new Date().toISOString(),
       };
 
-      const { data, error } = await supabase
+      // Try inserting with created_at first; fall back if schema lacks the column
+      let insertedRecord = null;
+      const { data: withDateData, error: withDateError } = await supabase
         .from('journey_stops')
-        .insert([payload])
+        .insert([{ ...basePayload, created_at: new Date().toISOString() }])
         .select()
         .single();
 
-      if (error) throw error;
+      if (withDateError) {
+        console.warn('Failed with created_at, retrying without it:', withDateError.message);
+        const { data: fallbackData, error: fallbackError } = await supabase
+          .from('journey_stops')
+          .insert([basePayload])
+          .select()
+          .single();
+
+        if (fallbackError) throw fallbackError;
+        insertedRecord = fallbackData;
+      } else {
+        insertedRecord = withDateData;
+      }
 
       // Update book status badge depending on event
       if (newStop.status_event === 'Ready to Pass Along') {
@@ -174,7 +194,7 @@ export default function BookDetailPage() {
         setBook((prev) => ({ ...prev, status: 'Currently Reading' }));
       }
 
-      setStops((prev) => [data, ...prev]);
+      setStops((prev) => [insertedRecord, ...prev]);
       setShowLogModal(false);
       setNewStop((prev) => ({
         ...prev,
@@ -326,37 +346,45 @@ export default function BookDetailPage() {
           </div>
         ) : (
           <div className="space-y-3">
-            {stops.map((stop) => (
-              <div key={stop.id} className="bg-white border border-stone-200 rounded-xl p-4 shadow-2xs space-y-2 text-xs">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <span className="font-semibold text-stone-900">{stop.reader_name || 'Anonymous Reader'}</span>
-                    <span className="text-[10px] bg-stone-100 text-stone-600 px-1.5 py-0.5 rounded font-mono">
-                      {stop.status_event}
-                    </span>
+            {stops.map((stop, idx) => {
+              const dateDisplay = stop.created_at || stop.date 
+                ? new Date(stop.created_at || stop.date).toLocaleDateString()
+                : null;
+
+              return (
+                <div key={stop.id || idx} className="bg-white border border-stone-200 rounded-xl p-4 shadow-2xs space-y-2 text-xs">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <span className="font-semibold text-stone-900">{stop.reader_name || 'Anonymous Reader'}</span>
+                      <span className="text-[10px] bg-stone-100 text-stone-600 px-1.5 py-0.5 rounded font-mono">
+                        {stop.status_event}
+                      </span>
+                    </div>
+                    {dateDisplay && (
+                      <span className="text-[11px] text-stone-400">
+                        {dateDisplay}
+                      </span>
+                    )}
                   </div>
-                  <span className="text-[11px] text-stone-400">
-                    {new Date(stop.created_at).toLocaleDateString()}
-                  </span>
+                  {stop.rating && (
+                    <div className="text-amber-500 text-xs">
+                      {'★'.repeat(stop.rating)}{'☆'.repeat(5 - stop.rating)}
+                    </div>
+                  )}
+                  {stop.location && (
+                    <p className="text-stone-500 flex items-center gap-1 text-[11px]">
+                      <MapPin className="w-3 h-3 text-stone-400" />
+                      <span>{stop.location}</span>
+                    </p>
+                  )}
+                  {stop.takeaway && (
+                    <blockquote className="text-stone-700 italic bg-stone-50 border-l-2 border-amber-500 py-1.5 px-3 rounded-r-md text-[11px]">
+                      "{stop.takeaway}"
+                    </blockquote>
+                  )}
                 </div>
-                {stop.rating && (
-                  <div className="text-amber-500 text-xs">
-                    {'★'.repeat(stop.rating)}{'☆'.repeat(5 - stop.rating)}
-                  </div>
-                )}
-                {stop.location && (
-                  <p className="text-stone-500 flex items-center gap-1 text-[11px]">
-                    <MapPin className="w-3 h-3 text-stone-400" />
-                    <span>{stop.location}</span>
-                  </p>
-                )}
-                {stop.takeaway && (
-                  <blockquote className="text-stone-700 italic bg-stone-50 border-l-2 border-amber-500 py-1.5 px-3 rounded-r-md text-[11px]">
-                    "{stop.takeaway}"
-                  </blockquote>
-                )}
-              </div>
-            ))}
+              );
+            })}
           </div>
         )}
       </div>
