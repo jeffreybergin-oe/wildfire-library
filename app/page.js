@@ -12,7 +12,10 @@ import {
   Compass, 
   Users, 
   Loader2,
-  ArrowRight
+  ArrowRight,
+  QrCode,
+  BookOpenCheck,
+  Send
 } from 'lucide-react';
 
 export default function CatalogPage() {
@@ -121,10 +124,10 @@ export default function CatalogPage() {
               <span>Release a Book</span>
             </Link>
             <a
-              href="#catalog-view"
+              href="#how-it-works"
               className="inline-flex items-center gap-2 px-5 py-2.5 bg-white hover:bg-stone-50 text-stone-700 border border-stone-200 rounded-xl text-xs sm:text-sm font-medium transition cursor-pointer"
             >
-              <span>Explore Catalog</span>
+              <span>How It Works</span>
               <ArrowRight className="w-3.5 h-3.5 text-stone-400" />
             </a>
           </div>
@@ -192,8 +195,69 @@ export default function CatalogPage() {
         </div>
       </section>
 
+      {/* How the Journey Works (Step 1) */}
+      <section id="how-it-works" className="max-w-5xl mx-auto px-4 pt-2">
+        <div className="bg-stone-50/70 border border-stone-200/80 rounded-2xl p-6 sm:p-8 space-y-6">
+          <div className="text-center max-w-lg mx-auto space-y-1">
+            <span className="text-[11px] font-mono font-bold tracking-widest uppercase text-amber-700">Simple & Free</span>
+            <h2 className="font-serif font-bold text-xl sm:text-2xl text-stone-900">How the Journey Works</h2>
+            <p className="text-stone-500 text-xs sm:text-sm">No due dates, library cards, or fees—just books traveling hand to hand.</p>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-6 pt-2">
+            {/* Step 1 */}
+            <div className="bg-white border border-stone-200 rounded-xl p-5 space-y-3 relative shadow-2xs">
+              <div className="flex items-center justify-between">
+                <div className="w-9 h-9 rounded-lg bg-amber-100/70 text-amber-800 flex items-center justify-center">
+                  <QrCode className="w-4 h-4" />
+                </div>
+                <span className="font-mono text-xs font-bold text-stone-300">01</span>
+              </div>
+              <div className="space-y-1">
+                <h3 className="font-serif font-bold text-sm text-stone-900">Find & Scan</h3>
+                <p className="text-stone-600 text-xs leading-relaxed">
+                  Spot a book in a café, park bench, or little free library. Scan the 3" bookplate QR code to see its backstory.
+                </p>
+              </div>
+            </div>
+
+            {/* Step 2 */}
+            <div className="bg-white border border-stone-200 rounded-xl p-5 space-y-3 relative shadow-2xs">
+              <div className="flex items-center justify-between">
+                <div className="w-9 h-9 rounded-lg bg-emerald-100/70 text-emerald-800 flex items-center justify-center">
+                  <BookOpenCheck className="w-4 h-4" />
+                </div>
+                <span className="font-mono text-xs font-bold text-stone-300">02</span>
+              </div>
+              <div className="space-y-1">
+                <h3 className="font-serif font-bold text-sm text-stone-900">Confirm Pickup</h3>
+                <p className="text-stone-600 text-xs leading-relaxed">
+                  Tap "Just Picked Up" to let previous readers know the copy is in good hands. Take your time enjoying the read.
+                </p>
+              </div>
+            </div>
+
+            {/* Step 3 */}
+            <div className="bg-white border border-stone-200 rounded-xl p-5 space-y-3 relative shadow-2xs">
+              <div className="flex items-center justify-between">
+                <div className="w-9 h-9 rounded-lg bg-blue-100/70 text-blue-800 flex items-center justify-center">
+                  <Send className="w-4 h-4" />
+                </div>
+                <span className="font-mono text-xs font-bold text-stone-300">03</span>
+              </div>
+              <div className="space-y-1">
+                <h3 className="font-serif font-bold text-sm text-stone-900">Pass It Along</h3>
+                <p className="text-stone-600 text-xs leading-relaxed">
+                  Leave a quick takeaway note and star rating, then release it in a new spot for someone else to discover.
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
       {/* Catalog Search & Grid */}
-      <section id="catalog-view" className="max-w-5xl mx-auto px-4 space-y-6 pt-4">
+      <section id="catalog-view" className="max-w-5xl mx-auto px-4 space-y-6 pt-2">
         {/* Controls Bar */}
         <div className="flex flex-col sm:flex-row gap-3 items-center justify-between pb-4 border-b border-stone-200">
           <div className="relative w-full sm:w-80">
