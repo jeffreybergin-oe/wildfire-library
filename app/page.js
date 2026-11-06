@@ -2,17 +2,14 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { supabase } from '../lib/supabase';
+import { supabase } from '../../lib/supabase';
 import { 
   BookOpen, 
   MapPin, 
   BookMarked, 
-  CheckCircle2, 
   Printer, 
-  Calendar, 
   Loader2, 
   Flame, 
-  Sparkles, 
   UserCheck 
 } from 'lucide-react';
 
@@ -23,38 +20,38 @@ export default function ProfilePage() {
   const [readingStops, setReadingStops] = useState([]);
   const [activeTab, setActiveTab] = useState('released'); // 'released' | 'log'
 
-  // Pre-seeded curator selection if unauthenticated
-  const [curatorsList, setCuratorsList] = useState([]);
-  const [selectedCuratorEmail, setSelectedCuratorEmail] = useState('');
+  // Pre-seeded reader selection if unauthenticated
+  const [readersList, setReadersList] = useState([]);
+  const [selectedReaderEmail, setSelectedReaderEmail] = useState('');
 
   useEffect(() => {
     async function loadDashboard() {
       setLoading(true);
 
       try {
-        // 1. Fetch available curators for easy switching
+        // 1. Fetch available readers for easy switching
         const { data: allProfiles } = await supabase
           .from('profiles')
           .select('*')
           .order('display_name', { ascending: true });
 
         if (allProfiles && allProfiles.length > 0) {
-          setCuratorsList(allProfiles);
+          setReadersList(allProfiles);
         }
 
         // 2. Check for active Supabase Auth user
         const { data: { user } } = await supabase.auth.getUser();
 
-        let currentEmail = user?.email || selectedCuratorEmail;
+        let currentEmail = user?.email || selectedReaderEmail;
 
-        // If no auth user and no manually selected curator, default to the first profile or Jeffrey
+        // If no auth user and no manually selected reader, default to the first profile or Jeffrey
         if (!currentEmail && allProfiles && allProfiles.length > 0) {
-          const defaultCurator = allProfiles.find(p => p.email === 'jeffrey.bergin@gmail.com') || allProfiles[0];
-          currentEmail = defaultCurator.email;
+          const defaultReader = allProfiles.find(p => p.email === 'jeffrey.bergin@gmail.com') || allProfiles[0];
+          currentEmail = defaultReader.email;
         }
 
         if (currentEmail) {
-          setSelectedCuratorEmail(currentEmail);
+          setSelectedReaderEmail(currentEmail);
 
           // Get profile
           const { data: profData } = await supabase
@@ -65,13 +62,13 @@ export default function ProfilePage() {
 
           setProfile(profData || { email: currentEmail, display_name: currentEmail.split('@')[0], home_base: 'Central NY' });
 
-          const curatorName = profData?.display_name || currentEmail.split('@')[0];
+          const readerName = profData?.display_name || currentEmail.split('@')[0];
 
-          // 3. Fetch books released by this curator (matching curator_name or email)
+          // 3. Fetch books released by this reader (matching curator_name or email)
           const { data: booksData } = await supabase
             .from('books')
             .select('*')
-            .or(`curator_name.ilike.%${curatorName}%,curator_name.eq.${currentEmail}`)
+            .or(`curator_name.ilike.%${readerName}%,curator_name.eq.${currentEmail}`)
             .order('created_at', { ascending: false });
 
           setReleasedBooks(booksData || []);
@@ -80,33 +77,33 @@ export default function ProfilePage() {
           const { data: stopsData } = await supabase
             .from('journey_stops')
             .select('*')
-            .or(`reader_email.eq.${currentEmail},reader_name.ilike.%${curatorName}%`)
+            .or(`reader_email.eq.${currentEmail},reader_name.ilike.%${readerName}%`)
             .order('created_at', { ascending: false });
 
           setReadingStops(stopsData || []);
         }
       } catch (err) {
-        console.error('Error loading curator profile:', err);
+        console.error('Error loading reader profile:', err);
       } finally {
         setLoading(false);
       }
     }
 
     loadDashboard();
-  }, [selectedCuratorEmail]);
+  }, [selectedReaderEmail]);
 
   if (loading) {
     return (
       <div className="py-24 text-center text-stone-500 text-sm flex flex-col items-center justify-center gap-2">
         <Loader2 className="w-6 h-6 animate-spin text-amber-600" />
-        <span>Loading curator dashboard...</span>
+        <span>Loading reader dashboard...</span>
       </div>
     );
   }
 
   return (
     <div className="max-w-5xl mx-auto px-4 py-8 space-y-8">
-      {/* Curator Identity Header */}
+      {/* Reader Identity Header */}
       <div className="bg-white border border-stone-200 rounded-3xl p-6 sm:p-8 shadow-xs flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
         <div className="flex items-center gap-4">
           <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-2xl bg-amber-100/70 border border-amber-200 flex items-center justify-center text-3xl sm:text-4xl shadow-inner shrink-0">
@@ -116,10 +113,10 @@ export default function ProfilePage() {
           <div className="space-y-1">
             <div className="flex items-center gap-2">
               <h1 className="text-2xl sm:text-3xl font-serif font-bold text-stone-900">
-                {profile?.display_name || 'Curator'}
+                {profile?.display_name || 'Reader'}
               </h1>
               <span className="bg-stone-900 text-white text-[10px] font-mono uppercase tracking-wider px-2 py-0.5 rounded-md font-bold">
-                Curator
+                Reader
               </span>
             </div>
 
@@ -132,16 +129,16 @@ export default function ProfilePage() {
           </div>
         </div>
 
-        {/* Quick Curator Switcher dropdown (handy for testing your 6 seeded users) */}
-        {curatorsList.length > 0 && (
+        {/* Quick Reader Switcher dropdown */}
+        {readersList.length > 0 && (
           <div className="w-full md:w-auto flex items-center gap-2 bg-stone-50 p-2 rounded-xl border border-stone-200">
             <UserCheck className="w-4 h-4 text-stone-500 shrink-0 ml-1" />
             <select
-              value={selectedCuratorEmail}
-              onChange={(e) => setSelectedCuratorEmail(e.target.value)}
+              value={selectedReaderEmail}
+              onChange={(e) => setSelectedReaderEmail(e.target.value)}
               className="text-xs bg-transparent text-stone-800 font-medium focus:outline-none cursor-pointer pr-2"
             >
-              {curatorsList.map((c) => (
+              {readersList.map((c) => (
                 <option key={c.id || c.email} value={c.email}>
                   Viewing as: {c.display_name} ({c.home_base})
                 </option>
