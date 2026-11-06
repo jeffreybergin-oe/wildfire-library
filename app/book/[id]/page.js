@@ -4,17 +4,14 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
 import { supabase } from '../../../lib/supabase';
-import JourneyTimeline from '../../../components/JourneyTimeline';
 import { 
   ArrowLeft, 
   BookOpen, 
   MapPin, 
   Printer, 
   Loader2, 
-  QrCode, 
   PlusCircle, 
-  User,
-  Calendar
+  Calendar 
 } from 'lucide-react';
 
 export default function BookDetailPage() {
@@ -26,7 +23,6 @@ export default function BookDetailPage() {
   const [loading, setLoading] = useState(true);
   const [errorMsg, setErrorMsg] = useState('');
 
-  // Log Stop Modal / Drawer State
   const [showLogModal, setShowLogModal] = useState(false);
   const [submittingStop, setSubmittingStop] = useState(false);
   const [newStop, setNewStop] = useState({
@@ -45,7 +41,6 @@ export default function BookDetailPage() {
       setErrorMsg('');
 
       try {
-        // 1. Fetch book record by book_id or UUID
         const { data: bookData, error: bookError } = await supabase
           .from('books')
           .select('*')
@@ -61,7 +56,6 @@ export default function BookDetailPage() {
 
         setBook(bookData);
 
-        // 2. Fetch associated journey stops
         const queryId = bookData.book_id || bookData.id;
         const { data: stopsData, error: stopsError } = await supabase
           .from('journey_stops')
@@ -71,23 +65,6 @@ export default function BookDetailPage() {
 
         if (stopsError) throw stopsError;
         setStops(stopsData || []);
-
-        // Pre-fill user details if logged in
-        const { data: { user } } = await supabase.auth.getUser();
-        if (user) {
-          const { data: prof } = await supabase
-            .from('profiles')
-            .select('display_name, home_base')
-            .eq('email', user.email)
-            .maybeSingle();
-
-          setNewStop((prev) => ({
-            ...prev,
-            reader_email: user.email,
-            reader_name: prof?.display_name || user.email.split('@')[0],
-            location: prof?.home_base || '',
-          }));
-        }
       } catch (err) {
         console.error('Error fetching book details:', err);
         setErrorMsg('Failed to load book journey.');
@@ -99,7 +76,6 @@ export default function BookDetailPage() {
     loadBookData();
   }, [bookIdParam]);
 
-  // Submit new reading stop
   const handleLogStop = async (e) => {
     e.preventDefault();
     setSubmittingStop(true);
@@ -125,7 +101,6 @@ export default function BookDetailPage() {
 
       if (error) throw error;
 
-      // Update book status if passed along
       if (newStop.status_event === 'Ready for Next Reader') {
         await supabase
           .from('books')
@@ -137,20 +112,13 @@ export default function BookDetailPage() {
 
       setStops((prev) => [data, ...prev]);
       setShowLogModal(false);
-      setNewStop((prev) => ({
-        ...prev,
-        takeaway: '',
-      }));
+      setNewStop((prev) => ({ ...prev, takeaway: '' }));
     } catch (err) {
       console.error('Error logging journey stop:', err);
       alert(err.message || 'Error recording stop.');
     } finally {
       setSubmittingStop(false);
     }
-  };
-
-  const handlePrint = () => {
-    window.print();
   };
 
   if (loading) {
@@ -166,10 +134,7 @@ export default function BookDetailPage() {
     return (
       <div className="max-w-3xl mx-auto px-4 py-16 text-center space-y-4">
         <p className="text-stone-800 text-sm font-medium">{errorMsg || 'Book not found'}</p>
-        <Link
-          href="/"
-          className="inline-flex items-center gap-1.5 text-xs text-amber-700 hover:underline"
-        >
+        <Link href="/" className="inline-flex items-center gap-1.5 text-xs text-amber-700 hover:underline">
           <ArrowLeft className="w-3.5 h-3.5" />
           <span>Return to Catalog</span>
         </Link>
@@ -184,25 +149,23 @@ export default function BookDetailPage() {
 
   return (
     <div className="max-w-4xl mx-auto px-4 py-8 space-y-8">
-      {/* Back button & Action Bar */}
+      {/* Top Bar */}
       <div className="flex items-center justify-between">
-        <Link
-          href="/"
-          className="inline-flex items-center gap-1.5 text-xs text-stone-500 hover:text-stone-900 transition"
-        >
+        <Link href="/" className="inline-flex items-center gap-1.5 text-xs text-stone-500 hover:text-stone-900 transition">
           <ArrowLeft className="w-3.5 h-3.5" />
           <span>Catalog</span>
         </Link>
-
         <div className="flex items-center gap-2">
           <button
-            onClick={handlePrint}
+            type="button"
+            onClick={() => window.print()}
             className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white border border-stone-200 hover:bg-stone-50 text-stone-700 rounded-lg text-xs font-medium transition cursor-pointer"
           >
             <Printer className="w-3.5 h-3.5 text-stone-500" />
             <span>Print Bookplate</span>
           </button>
           <button
+            type="button"
             onClick={() => setShowLogModal(true)}
             className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-stone-900 hover:bg-stone-800 text-white rounded-lg text-xs font-semibold transition cursor-pointer"
           >
@@ -212,7 +175,7 @@ export default function BookDetailPage() {
         </div>
       </div>
 
-      {/* Book Summary Card */}
+      {/* Book Info Card */}
       <div className="bg-white border border-stone-200 rounded-2xl p-6 shadow-xs flex flex-col sm:flex-row gap-6">
         <div className="w-28 sm:w-32 aspect-[2/3] bg-stone-100 rounded-xl overflow-hidden border border-stone-200 flex items-center justify-center shrink-0">
           {coverImage ? (
@@ -221,19 +184,12 @@ export default function BookDetailPage() {
             <BookOpen className="w-8 h-8 text-stone-300" />
           )}
         </div>
-
         <div className="space-y-3 flex-1">
           <div className="flex flex-wrap items-center gap-2">
             <span className="font-mono text-xs font-bold bg-stone-900 text-white px-2 py-0.5 rounded">
               {displayId}
             </span>
-            <span
-              className={`text-xs font-medium px-2.5 py-0.5 rounded-full ${
-                book.status === 'Ready for Next Reader'
-                  ? 'bg-emerald-100 text-emerald-800'
-                  : 'bg-amber-100 text-amber-800'
-              }`}
-            >
+            <span className="text-xs font-medium px-2.5 py-0.5 rounded-full bg-amber-100 text-amber-800">
               {book.status || 'In the Wild'}
             </span>
             {book.genre && (
@@ -242,32 +198,21 @@ export default function BookDetailPage() {
               </span>
             )}
           </div>
-
           <div>
-            <h1 className="font-serif font-bold text-xl sm:text-2xl text-stone-900">
-              {book.title}
-            </h1>
+            <h1 className="font-serif font-bold text-xl sm:text-2xl text-stone-900">{book.title}</h1>
             <p className="text-xs sm:text-sm text-stone-600 mt-0.5">by {book.author}</p>
           </div>
-
           <div className="pt-2 border-t border-stone-100 flex flex-wrap gap-y-2 gap-x-6 text-xs text-stone-500">
             <div>
               <span className="text-stone-400">Released by: </span>
-              <Link 
-                href={`/reader/${encodeURIComponent(book.curator_name || 'Reader')}`}
-                className="text-stone-800 hover:underline font-medium"
-              >
-                {book.curator_name || 'Reader'}
-              </Link>
+              <span className="text-stone-800 font-medium">{book.curator_name || 'Reader'}</span>
             </div>
-
             {book.release_location && (
               <div className="flex items-center gap-1">
                 <MapPin className="w-3.5 h-3.5 text-stone-400" />
                 <span>{book.release_location}</span>
               </div>
             )}
-
             {book.created_at && (
               <div className="flex items-center gap-1">
                 <Calendar className="w-3.5 h-3.5 text-stone-400" />
@@ -278,7 +223,7 @@ export default function BookDetailPage() {
         </div>
       </div>
 
-      {/* Journey Section */}
+      {/* Journey Stops Feed */}
       <div className="space-y-4">
         <div className="flex items-center justify-between pb-2 border-b border-stone-200">
           <div>
@@ -289,12 +234,43 @@ export default function BookDetailPage() {
             {stops.length} {stops.length === 1 ? 'stop' : 'stops'}
           </span>
         </div>
-
-        {/* Integrated Journey Timeline Component */}
-        <JourneyTimeline stops={stops} />
+        {stops.length === 0 ? (
+          <div className="bg-white border border-dashed border-stone-300 rounded-xl p-8 text-center text-stone-500 text-xs">
+            No journey stops logged yet. Scan the bookplate QR code to record the first stop!
+          </div>
+        ) : (
+          <div className="space-y-3">
+            {stops.map((stop) => (
+              <div key={stop.id} className="bg-white border border-stone-200 rounded-xl p-4 shadow-2xs space-y-2 text-xs">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <span className="font-semibold text-stone-900">{stop.reader_name || 'Anonymous Reader'}</span>
+                    <span className="text-[10px] bg-stone-100 text-stone-600 px-1.5 py-0.5 rounded font-mono">
+                      {stop.status_event}
+                    </span>
+                  </div>
+                  <span className="text-[11px] text-stone-400">
+                    {new Date(stop.created_at).toLocaleDateString()}
+                  </span>
+                </div>
+                {stop.location && (
+                  <p className="text-stone-500 flex items-center gap-1 text-[11px]">
+                    <MapPin className="w-3 h-3 text-stone-400" />
+                    <span>{stop.location}</span>
+                  </p>
+                )}
+                {stop.takeaway && (
+                  <blockquote className="text-stone-700 italic bg-stone-50 border-l-2 border-amber-500 py-1.5 px-3 rounded-r-md text-[11px]">
+                    "{stop.takeaway}"
+                  </blockquote>
+                )}
+              </div>
+            ))}
+          </div>
+        )}
       </div>
 
-      {/* Log Reading Stop Modal */}
+      {/* Log Modal */}
       {showLogModal && (
         <div className="fixed inset-0 z-50 bg-stone-900/40 backdrop-blur-xs flex items-center justify-center p-4">
           <div className="bg-white border border-stone-200 rounded-2xl p-6 max-w-md w-full space-y-4 shadow-xl">
@@ -308,7 +284,6 @@ export default function BookDetailPage() {
                 ✕
               </button>
             </div>
-
             <form onSubmit={handleLogStop} className="space-y-3 text-xs">
               <div>
                 <label className="block font-medium text-stone-700 mb-1">Your Name</label>
@@ -321,7 +296,6 @@ export default function BookDetailPage() {
                   className="w-full px-3 py-2 bg-stone-50 border border-stone-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-amber-500 text-stone-900"
                 />
               </div>
-
               <div>
                 <label className="block font-medium text-stone-700 mb-1">Your Email (optional)</label>
                 <input
@@ -332,7 +306,6 @@ export default function BookDetailPage() {
                   className="w-full px-3 py-2 bg-stone-50 border border-stone-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-amber-500 text-stone-900"
                 />
               </div>
-
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="block font-medium text-stone-700 mb-1">Status Event</label>
@@ -346,7 +319,6 @@ export default function BookDetailPage() {
                     <option value="Ready for Next Reader">Passed Along</option>
                   </select>
                 </div>
-
                 <div>
                   <label className="block font-medium text-stone-700 mb-1">Rating (1-5)</label>
                   <select
@@ -362,7 +334,6 @@ export default function BookDetailPage() {
                   </select>
                 </div>
               </div>
-
               <div>
                 <label className="block font-medium text-stone-700 mb-1">Location / Drop Spot</label>
                 <input
@@ -373,7 +344,6 @@ export default function BookDetailPage() {
                   className="w-full px-3 py-2 bg-stone-50 border border-stone-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-amber-500 text-stone-900"
                 />
               </div>
-
               <div>
                 <label className="block font-medium text-stone-700 mb-1">Reader Takeaway / Note</label>
                 <textarea
@@ -384,7 +354,6 @@ export default function BookDetailPage() {
                   className="w-full px-3 py-2 bg-stone-50 border border-stone-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-amber-500 text-stone-900"
                 />
               </div>
-
               <div className="flex items-center justify-end gap-2 pt-2">
                 <button
                   type="button"
@@ -399,5 +368,33 @@ export default function BookDetailPage() {
                   className="px-4 py-1.5 bg-stone-900 hover:bg-stone-800 disabled:bg-stone-300 text-white rounded-lg text-xs font-semibold flex items-center gap-1.5"
                 >
                   {submittingStop ? (
-                    <>
-                      <Loader2 className="w-3.5 h-3.5 animate-spin"
+                    <span>Saving...</span>
+                  ) : (
+                    <span>Submit Stop</span>
+                  )}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Printable Bookplate */}
+      <div className="hidden print:block fixed inset-0 bg-white p-6">
+        <div className="w-[3in] h-[3in] border-2 border-dashed border-stone-900 p-3 mx-auto flex flex-col justify-between items-center text-center">
+          <div className="space-y-0.5">
+            <p className="font-serif font-bold text-sm text-stone-900">Wildfire Library</p>
+            <p className="text-[9px] uppercase tracking-widest text-stone-500">Books in the Wild</p>
+          </div>
+          <div className="my-1">
+            <img src={qrCodeApiUrl} alt="Scan QR" className="w-24 h-24 mx-auto" />
+          </div>
+          <div className="space-y-0.5">
+            <p className="font-mono font-bold text-xs text-stone-900">{displayId}</p>
+            <p className="text-[8px] text-stone-600">Scan to read journey & log where you pass it</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
