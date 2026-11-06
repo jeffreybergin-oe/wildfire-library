@@ -2,195 +2,354 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
 import { supabase } from '../../lib/supabase';
-import { ArrowLeft, BookPlus, Loader2, Sparkles, MapPin } from 'lucide-react';
+import { Search, BookCheck, CheckCircle2, AlertCircle, Loader2, ArrowLeft, Printer, ExternalLink } from 'lucide-react';
 
 const GENRES = [
+  'Fiction & Literature',
   'Non-Fiction',
-  'Sci-Fi / Fantasy',
-  'Mystery / Thriller',
   'Personal Growth / Business',
-  'Fiction',
-  'Biography',
+  'Mystery / Thriller',
+  'Sci-Fi / Fantasy',
+  'Biography / Memoir',
 ];
 
 export default function AddBookPage() {
-  const router = useRouter();
-  const [loadingUser, setLoadingUser] = useState(true);
-  const [submitting, setSubmitting] = useState(false);
-  const [errorMessage, setErrorMessage] = useState('');
+  const [curator, setCurator] = useState(null);
+  const [loadingCurator, setLoadingCurator] = useState(true);
 
-  const [formData, setFormData] = useState({
-    title: '',
-    author: '',
-    genre: 'Non-Fiction',
-    curator_name: '',
-    release_location: '',
-    cover_image_url: '',
-    initial_takeaway: '',
-  });
+  // Form State
+  const [isbn, setIsbn] = useState('');
+  const [title, setTitle] = useState('');
+  const [author, setAuthor] = useState('');
+  const [genre, setGenre] = useState(GENRES[0]);
+  const [coverUrl, setCoverUrl] = useState('');
+  const [releaseLocation, setReleaseLocation] = useState('');
+
+  // Lookup & Submit States
+  const [lookingUp, setLookingUp] = useState(false);
+  const [lookupMessage, setLookupMessage] = useState(null);
+  const [submitting, setSubmitting] = useState(false);
+  const [registeredBook, setRegisteredBook] = useState(null);
+  const [errorMessage, setErrorMessage] = useState(null);
 
   useEffect(() => {
-    async function loadUserProfile() {
+    async function loadCurator() {
       try {
         const { data: { user } } = await supabase.auth.getUser();
         if (user) {
-          const { data: prof } = await supabase
+          const { data: profile } = await supabase
             .from('profiles')
-            .select('display_name, home_base')
-            .eq('email', user.email)
+            .select('display_name, avatar_url, home_base')
+            .eq('id', user.id)
             .maybeSingle();
 
-          setFormData((prev) => ({
-            ...prev,
-            curator_name: prof?.display_name || user.email.split('@')[0],
-            release_location: prof?.home_base || '',
-          }));
+          setCurator({
+            id: user.id,
+            displayName: profile?.display_name || user.email?.split('@')[0],
+            avatar: profile?.avatar_url || '🔥',
+          });
+
+          if (profile?.home_base) {
+            setReleaseLocation(profile.home_base);
+          }
         }
       } catch (err) {
-        console.error('Error fetching user profile:', err);
+        console.error('Error loading curator:', err);
       } finally {
-        setLoadingUser(false);
+        setLoadingCurator(false);
       }
     }
 
-    loadUserProfile();
+    loadCurator();
   }, []);
+
+  const handleLookupIsbn = async () => {
+    const cleanedIsbn = isbn.replace(/[^0-9X]/gi, '').trim();
+    if (!cleanedIsbn) {
+      setLookupMessage({ type: 'error', text: 'Please enter a valid ISBN.' });
+      return;
+    }
+
+    setLookingUp(true);
+    setLookupMessage(null);
+
+    try {
+      const res = await fetch(`https://openlibrary.org/api/books?bibkeys=ISBN:${cleanedIsbn}&format=json&jscmd=data`);
+      const data = await res.json();
+      const bookData = data[`ISBN:${cleanedIsbn}`];
+
+      if (bookData) {
+        setTitle(bookData.title || '');
+        if (bookData.authors && bookData.authors.length > 0) {
+          setAuthor(bookData.authors.map((a) => a.name).join(', '));
+        }
+        if (bookData.cover?.large || bookData.cover?.medium) {
+          setCoverUrl(bookData.cover.large || bookData.cover.medium);
+        } else {
+          setCoverUrl('');
+        }
+        setLookupMessage({ type: 'success', text: 'Book details and cover found!' });
+      } else {
+        setLookupMessage({
+          type: 'error',
+          text: 'Book not found automatically. You can enter the title and author manually.',
+        });
+      }
+    } catch (err) {
+      console.error('ISBN lookup error:', err);
+      setLookupMessage({ type: 'error', text: 'Could not fetch book details. Please fill in below.' });
+    } finally {
+      setLookingUp(false);
+    }
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setSubmitting(true);
-    setErrorMessage('');
+    setErrorMessage(null);
 
     try {
-      // 1. Fetch latest book_id to calculate next sequence (WF-XXX)
-      const { data: existingBooks } = await supabase
-        .from('books')
-        .select('book_id')
-        .order('created_at', { ascending: false })
-        .limit(50);
+      const generatedBookId = `WF-${Math.floor(1000 + Math.random() * 9000)}`;
 
-      let maxNumber = 0;
-      if (existingBooks && existingBooks.length > 0) {
-        existingBooks.forEach((b) => {
-          if (b.book_id && b.book_id.startsWith('WF-')) {
-            const numPart = parseInt(b.book_id.replace('WF-', ''), 10);
-            if (!isNaN(numPart) && numPart > maxNumber) {
-              maxNumber = numPart;
-            }
-          }
-        });
-      }
-
-      const nextId = `WF-${String(maxNumber + 1).padStart(3, '0')}`;
-
-      // 2. Insert into books table
-      const bookPayload = {
-        book_id: nextId,
-        title: formData.title.trim(),
-        author: formData.author.trim(),
-        genre: formData.genre,
-        curator_name: formData.curator_name.trim() || 'Wildfire Reader',
-        release_location: formData.release_location.trim(),
-        cover_image: formData.cover_image_url.trim() || null,
-        cover_image_url: formData.cover_image_url.trim() || null,
-        status: 'Ready for Next Reader',
+      const newBook = {
+        book_id: generatedBookId,
+        title: title.trim(),
+        author: author.trim(),
+        isbn: isbn.trim() || null,
+        genre: genre,
+        cover_image: coverUrl || null,
+        release_location: releaseLocation.trim() || null,
+        user_id: curator ? curator.id : null,
+        curator_name: curator ? curator.displayName : 'Anonymous Curator',
+        curator_avatar: curator ? curator.avatar : '📖',
         created_at: new Date().toISOString(),
       };
 
-      const { data: insertedBook, error: bookError } = await supabase
+      const { data, error } = await supabase
         .from('books')
-        .insert([bookPayload])
+        .insert([newBook])
         .select()
         .single();
 
-      if (bookError) throw bookError;
+      if (error) throw error;
 
-      // 3. Log initial registration stop in journey_stops
-      const activeBookId = insertedBook.book_id || nextId;
-      const stopPayload = {
-        book_id: activeBookId,
-        reader_name: formData.curator_name.trim() || 'Wildfire Reader',
-        status_event: 'Registered',
-        location: formData.release_location.trim(),
-        takeaway: formData.initial_takeaway.trim() || 'Released into the wild.',
-        created_at: new Date().toISOString(),
-      };
-
-      await supabase.from('journey_stops').insert([stopPayload]);
-
-      // 4. Redirect directly to the new book journey page
-      router.push(`/book/${activeBookId}`);
+      setRegisteredBook(data || newBook);
     } catch (err) {
-      console.error('Error adding book:', err);
-      setErrorMessage(err.message || 'Failed to release book. Please try again.');
+      console.error('Registration failed:', err);
+      setErrorMessage(err.message || 'Failed to register book.');
+    } finally {
       setSubmitting(false);
     }
   };
 
+  if (loadingCurator) {
+    return (
+      <div className="min-h-[50vh] flex flex-col items-center justify-center gap-2 text-stone-500">
+        <Loader2 className="w-5 h-5 animate-spin text-amber-600" />
+        <span className="text-xs font-medium">Loading...</span>
+      </div>
+    );
+  }
+
+  const bookIdToDisplay = registeredBook?.book_id || '';
+  const trackingUrl = bookIdToDisplay
+    ? `https://wildfire-library.vercel.app/book/${bookIdToDisplay}`
+    : '';
+  const qrCodeUrl = trackingUrl
+    ? `https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${encodeURIComponent(trackingUrl)}`
+    : '';
+
   return (
-    <div className="max-w-2xl mx-auto px-4 py-8 space-y-6">
+    <div className="max-w-lg mx-auto py-10 px-4 sm:px-6">
       <Link
         href="/"
-        className="inline-flex items-center gap-1.5 text-xs text-stone-500 hover:text-stone-900 transition"
+        className="inline-flex items-center gap-2 text-xs font-medium text-stone-500 hover:text-stone-800 transition mb-6"
       >
         <ArrowLeft className="w-3.5 h-3.5" />
-        <span>Back to Catalog</span>
+        Back to Home
       </Link>
 
-      <div className="bg-white border border-stone-200 rounded-2xl p-6 sm:p-8 shadow-xs space-y-6">
-        <div className="space-y-1">
-          <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-amber-50 border border-amber-200 text-amber-800 text-[11px] font-medium">
-            <Sparkles className="w-3.5 h-3.5" />
-            <span>Wildfire Registration</span>
+      {registeredBook ? (
+        <div className="bg-white border border-stone-200 rounded-2xl p-8 text-center shadow-sm">
+          <div className="w-12 h-12 bg-emerald-50 border border-emerald-200 text-emerald-600 rounded-2xl flex items-center justify-center mx-auto mb-4">
+            <CheckCircle2 className="w-6 h-6" />
           </div>
-          <h1 className="font-serif font-bold text-xl sm:text-2xl text-stone-900">
-            Release a Book into the Wild
-          </h1>
-          <p className="text-xs text-stone-500">
-            Add a book to the library, assign it a unique tracking ID, and generate a printable QR bookplate.
+          <h2 className="font-serif text-2xl font-bold text-stone-900 mb-1">Book Registered!</h2>
+          <p className="text-xs text-stone-500 max-w-sm mx-auto mb-6">
+            Print or paste this QR label and Book ID inside the cover before setting it free.
           </p>
-        </div>
 
-        {errorMessage && (
-          <div className="text-xs text-rose-600 bg-rose-50 border border-rose-100 rounded-lg p-3">
-            {errorMessage}
-          </div>
-        )}
+          {/* Printable Label Card */}
+          <div className="bg-amber-50/50 border-2 border-stone-800 rounded-2xl p-6 mb-6 max-w-sm mx-auto text-center shadow-sm">
+            <div className="font-serif font-bold text-base text-stone-900 flex items-center justify-center gap-1.5 mb-1">
+              <span>🔥</span> Wildfire Library
+            </div>
+            <p className="text-[11px] text-stone-600 mb-4">Read • Log Journey • Pass Along</p>
 
-        <form onSubmit={handleSubmit} className="space-y-4 text-xs">
-          <div>
-            <label className="block font-medium text-stone-700 mb-1">Book Title *</label>
-            <input
-              type="text"
-              required
-              placeholder="e.g. The Overstory"
-              value={formData.title}
-              onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-              className="w-full px-3 py-2 bg-stone-50 border border-stone-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-amber-500 text-stone-900"
-            />
-          </div>
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div>
-              <label className="block font-medium text-stone-700 mb-1">Author *</label>
-              <input
-                type="text"
-                required
-                placeholder="e.g. Richard Powers"
-                value={formData.author}
-                onChange={(e) => setFormData({ ...formData, author: e.target.value })}
-                className="w-full px-3 py-2 bg-stone-50 border border-stone-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-amber-500 text-stone-900"
+            <div className="bg-white p-3 rounded-xl border border-stone-200 inline-block shadow-sm mb-3">
+              <img
+                src={qrCodeUrl}
+                alt={`QR code for ${bookIdToDisplay}`}
+                className="w-40 h-40 object-contain mx-auto"
               />
             </div>
 
+            <div className="text-[10px] font-bold uppercase tracking-wider text-stone-500">Book ID</div>
+            <div className="font-mono text-2xl font-extrabold tracking-widest text-stone-900 mb-1">
+              {bookIdToDisplay}
+            </div>
+            <p className="text-[10px] text-stone-500 break-all">{trackingUrl}</p>
+          </div>
+
+          <div className="text-xs text-stone-600 bg-stone-50 rounded-xl p-4 mb-6 text-left space-y-1">
+            <div><strong>Title:</strong> {registeredBook.title}</div>
+            <div><strong>Author:</strong> {registeredBook.author}</div>
+            <div><strong>Genre:</strong> {registeredBook.genre}</div>
+            <div><strong>Book ID:</strong> {registeredBook.book_id}</div>
+            <div><strong>Curator:</strong> {registeredBook.curator_avatar} {registeredBook.curator_name}</div>
+          </div>
+
+          <div className="flex flex-col sm:flex-row gap-3 justify-center">
+            <button
+              onClick={() => window.print()}
+              className="px-4 py-2 bg-stone-900 hover:bg-amber-600 text-white text-xs font-semibold rounded-xl transition flex items-center justify-center gap-1.5"
+            >
+              <Printer className="w-3.5 h-3.5" />
+              Print Label / QR
+            </button>
+            <button
+              onClick={() => {
+                setRegisteredBook(null);
+                setIsbn('');
+                setTitle('');
+                setAuthor('');
+                setCoverUrl('');
+              }}
+              className="px-4 py-2 bg-stone-100 hover:bg-stone-200 text-stone-800 text-xs font-semibold rounded-xl transition"
+            >
+              Register Another Book
+            </button>
+            <Link
+              href="/catalog"
+              className="px-4 py-2 bg-stone-100 hover:bg-stone-200 text-stone-800 text-xs font-semibold rounded-xl transition flex items-center justify-center gap-1"
+            >
+              Catalog
+              <ExternalLink className="w-3 h-3" />
+            </Link>
+          </div>
+        </div>
+      ) : (
+        <div className="bg-white border border-stone-200 rounded-2xl p-6 sm:p-8 shadow-sm">
+          <div className="flex items-center gap-2 mb-1">
+            <BookCheck className="w-5 h-5 text-amber-600" />
+            <h1 className="font-serif text-xl font-bold text-stone-900">Release a Book</h1>
+          </div>
+          <p className="text-xs text-stone-500 mb-6">
+            Enter the ISBN to autofill details and cover art, choose a genre, and generate a Book ID.
+          </p>
+
+          {errorMessage && (
+            <div className="mb-5 bg-rose-50 border border-rose-200 rounded-xl p-3 text-rose-800 text-xs flex items-center gap-2">
+              <AlertCircle className="w-4 h-4 text-rose-600 shrink-0" />
+              <span>{errorMessage}</span>
+            </div>
+          )}
+
+          {/* ISBN Search Bar on Top */}
+          <div className="mb-6">
+            <label htmlFor="isbn" className="block text-xs font-semibold text-stone-700 mb-1">
+              ISBN Number
+            </label>
+            <div className="flex gap-2">
+              <input
+                id="isbn"
+                type="text"
+                value={isbn}
+                onChange={(e) => setIsbn(e.target.value)}
+                placeholder="Scan or enter 10 or 13-digit ISBN"
+                className="flex-1 px-3 py-2 text-sm bg-stone-50 border border-stone-200 rounded-xl focus:border-amber-600 focus:bg-white outline-none transition font-mono"
+              />
+              <button
+                type="button"
+                onClick={handleLookupIsbn}
+                disabled={lookingUp || !isbn.trim()}
+                className="px-4 py-2 bg-stone-900 hover:bg-amber-600 disabled:opacity-50 text-white text-xs font-semibold rounded-xl transition flex items-center gap-1.5 shrink-0"
+              >
+                {lookingUp ? (
+                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                ) : (
+                  <Search className="w-3.5 h-3.5" />
+                )}
+                Check ISBN
+              </button>
+            </div>
+            {lookupMessage && (
+              <p className={`mt-2 text-xs ${lookupMessage.type === 'success' ? 'text-emerald-600' : 'text-stone-500'}`}>
+                {lookupMessage.text}
+              </p>
+            )}
+          </div>
+
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <div className="flex gap-4 items-start">
+              {coverUrl ? (
+                <div className="w-24 h-36 shrink-0 rounded-xl overflow-hidden border border-stone-200 shadow-sm bg-stone-100 relative">
+                  <img
+                    src={coverUrl}
+                    alt="Book Cover Preview"
+                    className="w-full h-full object-cover"
+                  />
+                </div>
+              ) : (
+                <div className="w-24 h-36 shrink-0 rounded-xl border border-dashed border-stone-300 bg-stone-50 flex flex-col items-center justify-center p-2 text-center text-stone-400">
+                  <span className="text-xl mb-1">📖</span>
+                  <span className="text-[10px] leading-tight">Cover preview</span>
+                </div>
+              )}
+
+              <div className="flex-1 space-y-3">
+                <div>
+                  <label htmlFor="title" className="block text-xs font-semibold text-stone-700 mb-1">
+                    Book Title *
+                  </label>
+                  <input
+                    id="title"
+                    type="text"
+                    required
+                    value={title}
+                    onChange={(e) => setTitle(e.target.value)}
+                    placeholder="Auto-fills from ISBN"
+                    className="w-full px-3 py-2 text-sm bg-stone-50 border border-stone-200 rounded-xl focus:border-amber-600 focus:bg-white outline-none transition"
+                  />
+                </div>
+
+                <div>
+                  <label htmlFor="author" className="block text-xs font-semibold text-stone-700 mb-1">
+                    Author *
+                  </label>
+                  <input
+                    id="author"
+                    type="text"
+                    required
+                    value={author}
+                    onChange={(e) => setAuthor(e.target.value)}
+                    placeholder="Auto-fills from ISBN"
+                    className="w-full px-3 py-2 text-sm bg-stone-50 border border-stone-200 rounded-xl focus:border-amber-600 focus:bg-white outline-none transition"
+                  />
+                </div>
+              </div>
+            </div>
+
             <div>
-              <label className="block font-medium text-stone-700 mb-1">Genre *</label>
+              <label htmlFor="genre" className="block text-xs font-semibold text-stone-700 mb-1">
+                Genre *
+              </label>
               <select
-                value={formData.genre}
-                onChange={(e) => setFormData({ ...formData, genre: e.target.value })}
-                className="w-full px-3 py-2 bg-stone-50 border border-stone-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-amber-500 text-stone-900"
+                id="genre"
+                value={genre}
+                onChange={(e) => setGenre(e.target.value)}
+                className="w-full px-3 py-2 text-sm bg-stone-50 border border-stone-200 rounded-xl focus:border-amber-600 focus:bg-white outline-none transition cursor-pointer"
               >
                 {GENRES.map((g) => (
                   <option key={g} value={g}>
@@ -199,83 +358,38 @@ export default function AddBookPage() {
                 ))}
               </select>
             </div>
-          </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
-              <label className="block font-medium text-stone-700 mb-1">Released By (Your Name) *</label>
+              <label htmlFor="releaseLocation" className="block text-xs font-semibold text-stone-700 mb-1">
+                Drop-off Spot / Release Location (Optional)
+              </label>
               <input
+                id="releaseLocation"
                 type="text"
-                required
-                placeholder="e.g. Alex S."
-                value={formData.curator_name}
-                onChange={(e) => setFormData({ ...formData, curator_name: e.target.value })}
-                className="w-full px-3 py-2 bg-stone-50 border border-stone-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-amber-500 text-stone-900"
+                value={releaseLocation}
+                onChange={(e) => setReleaseLocation(e.target.value)}
+                placeholder="e.g. Elm St Little Library, Coffee Shop"
+                className="w-full px-3 py-2 text-sm bg-stone-50 border border-stone-200 rounded-xl focus:border-amber-600 focus:bg-white outline-none transition"
               />
             </div>
 
-            <div>
-              <label className="block font-medium text-stone-700 mb-1">Release Location *</label>
-              <input
-                type="text"
-                required
-                placeholder="e.g. Syracuse, NY"
-                value={formData.release_location}
-                onChange={(e) => setFormData({ ...formData, release_location: e.target.value })}
-                className="w-full px-3 py-2 bg-stone-50 border border-stone-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-amber-500 text-stone-900"
-              />
-            </div>
-          </div>
-
-          <div>
-            <label className="block font-medium text-stone-700 mb-1">Cover Image URL (optional)</label>
-            <input
-              type="url"
-              placeholder="https://images.unsplash.com/... or Google Books image URL"
-              value={formData.cover_image_url}
-              onChange={(e) => setFormData({ ...formData, cover_image_url: e.target.value })}
-              className="w-full px-3 py-2 bg-stone-50 border border-stone-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-amber-500 text-stone-900"
-            />
-          </div>
-
-          <div>
-            <label className="block font-medium text-stone-700 mb-1">Why are you sharing this copy? (optional note)</label>
-            <textarea
-              rows="3"
-              placeholder="A favorite quote, why you loved it, or where you're dropping it..."
-              value={formData.initial_takeaway}
-              onChange={(e) => setFormData({ ...formData, initial_takeaway: e.target.value })}
-              className="w-full px-3 py-2 bg-stone-50 border border-stone-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-amber-500 text-stone-900"
-            />
-          </div>
-
-          <div className="pt-2 flex items-center justify-end gap-3">
-            <Link
-              href="/"
-              className="px-4 py-2 border border-stone-200 text-stone-600 hover:bg-stone-50 rounded-lg font-medium transition"
-            >
-              Cancel
-            </Link>
             <button
               type="submit"
-              disabled={submitting}
-              className="px-5 py-2 bg-stone-900 hover:bg-stone-800 disabled:bg-stone-300 text-white rounded-lg font-semibold inline-flex items-center gap-1.5 transition cursor-pointer"
+              disabled={submitting || !title.trim() || !author.trim()}
+              className="w-full py-2.5 px-4 bg-stone-900 hover:bg-amber-600 text-white text-xs font-semibold rounded-xl shadow-sm transition disabled:opacity-50 flex items-center justify-center gap-2 mt-2"
             >
               {submitting ? (
                 <>
                   <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                  <span>Registering...</span>
+                  Registering Book...
                 </>
               ) : (
-                <>
-                  <BookPlus className="w-3.5 h-3.5" />
-                  <span>Release Book</span>
-                </>
+                'Register & Generate Book ID / QR'
               )}
             </button>
-          </div>
-        </form>
-      </div>
+          </form>
+        </div>
+      )}
     </div>
   );
 }
