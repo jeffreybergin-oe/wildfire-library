@@ -16,7 +16,7 @@ import {
 
 export default function BookDetailPage() {
   const params = useParams();
-  const bookIdParam = params.id;
+  const bookIdParam = params?.id;
 
   const [book, setBook] = useState(null);
   const [stops, setStops] = useState([]);
@@ -41,22 +41,36 @@ export default function BookDetailPage() {
       setErrorMsg('');
 
       try {
+        // Query by book_id text directly to prevent PostgreSQL type-cast crashes
         const { data: bookData, error: bookError } = await supabase
           .from('books')
           .select('*')
-          .or(`book_id.eq.${bookIdParam},id.eq.${bookIdParam}`)
+          .eq('book_id', bookIdParam)
           .maybeSingle();
 
         if (bookError) throw bookError;
-        if (!bookData) {
+
+        let finalBook = bookData;
+
+        // Fallback: If not found by book_id and param is numeric, check id column
+        if (!finalBook && !isNaN(Number(bookIdParam))) {
+          const { data: idData } = await supabase
+            .from('books')
+            .select('*')
+            .eq('id', Number(bookIdParam))
+            .maybeSingle();
+          finalBook = idData;
+        }
+
+        if (!finalBook) {
           setErrorMsg('Book not found.');
           setLoading(false);
           return;
         }
 
-        setBook(bookData);
+        setBook(finalBook);
 
-        const queryId = bookData.book_id || bookData.id;
+        const queryId = finalBook.book_id || finalBook.id;
         const { data: stopsData, error: stopsError } = await supabase
           .from('journey_stops')
           .select('*')
