@@ -12,7 +12,7 @@ export default function Navbar() {
   const navLinks = [
     { href: '/', label: 'Catalog', icon: BookOpen },
     { href: '/add-book', label: 'Add Book', icon: PlusCircle },
-    { href: '/profile', label: 'Curator Dashboard', icon: User },
+    { href: '/profile', label: 'Reader Dashboard', icon: User },
   ];
 
   return (
