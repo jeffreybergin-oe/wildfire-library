@@ -64,7 +64,6 @@ export default function AddBookPage() {
     loadCurator();
   }, []);
 
-  // Fetch book details via Open Library API
   const handleLookupIsbn = async () => {
     const cleanedIsbn = isbn.replace(/[^0-9X]/gi, '').trim();
     if (!cleanedIsbn) {
@@ -111,20 +110,19 @@ export default function AddBookPage() {
     setErrorMessage(null);
 
     try {
-      const trackingCode = `WF-${Math.floor(1000 + Math.random() * 9000)}`;
+      const generatedBookId = `WF-${Math.floor(1000 + Math.random() * 9000)}`;
 
       const newBook = {
+        book_id: generatedBookId,
         title: title.trim(),
         author: author.trim(),
         isbn: isbn.trim() || null,
-        tracking_code: trackingCode,
         genre: genre,
         cover_image: coverUrl || null,
         release_location: releaseLocation.trim() || null,
         user_id: curator ? curator.id : null,
         curator_name: curator ? curator.displayName : 'Anonymous Curator',
         curator_avatar: curator ? curator.avatar : '📖',
-        status: 'in_the_wild',
         created_at: new Date().toISOString(),
       };
 
@@ -154,11 +152,11 @@ export default function AddBookPage() {
     );
   }
 
-  // QR Code URL pointing to the live book tracking page
-  const trackingUrl = registeredBook
-    ? `https://wildfire-library.vercel.app/book/${registeredBook.tracking_code}`
+  const bookIdToDisplay = registeredBook?.book_id || '';
+  const trackingUrl = bookIdToDisplay
+    ? `https://wildfire-library.vercel.app/book/${bookIdToDisplay}`
     : '';
-  const qrCodeUrl = registeredBook
+  const qrCodeUrl = trackingUrl
     ? `https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${encodeURIComponent(trackingUrl)}`
     : '';
 
@@ -179,27 +177,27 @@ export default function AddBookPage() {
           </div>
           <h2 className="font-serif text-2xl font-bold text-stone-900 mb-1">Book Registered!</h2>
           <p className="text-xs text-stone-500 max-w-sm mx-auto mb-6">
-            Print or paste this QR code &amp; tracking code inside the cover before releasing it into the wild.
+            Print or paste this QR label and Book ID inside the cover before setting it free.
           </p>
 
-          {/* Printable Book Label Card */}
-          <div id="print-label" className="bg-amber-50/50 border-2 border-stone-800 rounded-2xl p-6 mb-6 max-w-sm mx-auto text-center shadow-sm">
+          {/* Printable Label Card */}
+          <div className="bg-amber-50/50 border-2 border-stone-800 rounded-2xl p-6 mb-6 max-w-sm mx-auto text-center shadow-sm">
             <div className="font-serif font-bold text-base text-stone-900 flex items-center justify-center gap-1.5 mb-1">
               <span>🔥</span> Wildfire Library
             </div>
             <p className="text-[11px] text-stone-600 mb-4">Read • Log Journey • Pass Along</p>
 
-            {/* Live QR Code */}
             <div className="bg-white p-3 rounded-xl border border-stone-200 inline-block shadow-sm mb-3">
               <img
                 src={qrCodeUrl}
-                alt={`QR code for ${registeredBook.tracking_code}`}
+                alt={`QR code for ${bookIdToDisplay}`}
                 className="w-40 h-40 object-contain mx-auto"
               />
             </div>
 
-            <div className="font-mono text-xl font-extrabold tracking-widest text-stone-900 mb-1">
-              {registeredBook.tracking_code}
+            <div className="text-[10px] font-bold uppercase tracking-wider text-stone-500">Book ID</div>
+            <div className="font-mono text-2xl font-extrabold tracking-widest text-stone-900 mb-1">
+              {bookIdToDisplay}
             </div>
             <p className="text-[10px] text-stone-500 break-all">{trackingUrl}</p>
           </div>
@@ -208,6 +206,7 @@ export default function AddBookPage() {
             <div><strong>Title:</strong> {registeredBook.title}</div>
             <div><strong>Author:</strong> {registeredBook.author}</div>
             <div><strong>Genre:</strong> {registeredBook.genre}</div>
+            <div><strong>Book ID:</strong> {registeredBook.book_id}</div>
             <div><strong>Curator:</strong> {registeredBook.curator_avatar} {registeredBook.curator_name}</div>
           </div>
 
@@ -247,7 +246,7 @@ export default function AddBookPage() {
             <h1 className="font-serif text-xl font-bold text-stone-900">Release a Book</h1>
           </div>
           <p className="text-xs text-stone-500 mb-6">
-            Enter the ISBN to autofill details and cover art, choose a genre, and set it free.
+            Enter the ISBN to autofill details and cover art, choose a genre, and generate a Book ID.
           </p>
 
           {errorMessage && (
@@ -257,7 +256,7 @@ export default function AddBookPage() {
             </div>
           )}
 
-          {/* 1. ISBN Search Bar on Top */}
+          {/* ISBN Search Bar on Top */}
           <div className="mb-6">
             <label htmlFor="isbn" className="block text-xs font-semibold text-stone-700 mb-1">
               ISBN Number
@@ -293,7 +292,6 @@ export default function AddBookPage() {
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-4">
-            {/* Cover Preview + Title/Author Fields */}
             <div className="flex gap-4 items-start">
               {coverUrl ? (
                 <div className="w-24 h-36 shrink-0 rounded-xl overflow-hidden border border-stone-200 shadow-sm bg-stone-100 relative">
@@ -343,7 +341,6 @@ export default function AddBookPage() {
               </div>
             </div>
 
-            {/* 6 Genre Dropdown */}
             <div>
               <label htmlFor="genre" className="block text-xs font-semibold text-stone-700 mb-1">
                 Genre *
@@ -362,7 +359,6 @@ export default function AddBookPage() {
               </select>
             </div>
 
-            {/* Drop-off / Release Location */}
             <div>
               <label htmlFor="releaseLocation" className="block text-xs font-semibold text-stone-700 mb-1">
                 Drop-off Spot / Release Location (Optional)
@@ -388,7 +384,7 @@ export default function AddBookPage() {
                   Registering Book...
                 </>
               ) : (
-                'Register & Generate QR Label'
+                'Register & Generate Book ID / QR'
               )}
             </button>
           </form>
