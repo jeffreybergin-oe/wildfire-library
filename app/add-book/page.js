@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { supabase } from '../../lib/supabase';
-import { Search, BookCheck, CheckCircle2, AlertCircle, Loader2, ArrowLeft } from 'lucide-react';
+import { Search, BookCheck, CheckCircle2, AlertCircle, Loader2, ArrowLeft, Printer, ExternalLink } from 'lucide-react';
 
 const GENRES = [
   'Fiction & Literature',
@@ -85,10 +85,12 @@ export default function AddBookPage() {
         if (bookData.authors && bookData.authors.length > 0) {
           setAuthor(bookData.authors.map((a) => a.name).join(', '));
         }
-        if (bookData.cover?.medium || bookData.cover?.large) {
+        if (bookData.cover?.large || bookData.cover?.medium) {
           setCoverUrl(bookData.cover.large || bookData.cover.medium);
+        } else {
+          setCoverUrl('');
         }
-        setLookupMessage({ type: 'success', text: 'Book details found!' });
+        setLookupMessage({ type: 'success', text: 'Book details and cover found!' });
       } else {
         setLookupMessage({
           type: 'error',
@@ -152,6 +154,14 @@ export default function AddBookPage() {
     );
   }
 
+  // QR Code URL pointing to the live book tracking page
+  const trackingUrl = registeredBook
+    ? `https://wildfire-library.vercel.app/book/${registeredBook.tracking_code}`
+    : '';
+  const qrCodeUrl = registeredBook
+    ? `https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${encodeURIComponent(trackingUrl)}`
+    : '';
+
   return (
     <div className="max-w-lg mx-auto py-10 px-4 sm:px-6">
       <Link
@@ -169,11 +179,29 @@ export default function AddBookPage() {
           </div>
           <h2 className="font-serif text-2xl font-bold text-stone-900 mb-1">Book Registered!</h2>
           <p className="text-xs text-stone-500 max-w-sm mx-auto mb-6">
-            Write this Wildfire Tracking Code inside the book before setting it free:
+            Print or paste this QR code &amp; tracking code inside the cover before releasing it into the wild.
           </p>
 
-          <div className="bg-stone-50 border border-dashed border-stone-300 rounded-xl py-3 px-6 inline-block font-mono text-2xl font-bold text-stone-800 tracking-widest mb-6">
-            {registeredBook.tracking_code}
+          {/* Printable Book Label Card */}
+          <div id="print-label" className="bg-amber-50/50 border-2 border-stone-800 rounded-2xl p-6 mb-6 max-w-sm mx-auto text-center shadow-sm">
+            <div className="font-serif font-bold text-base text-stone-900 flex items-center justify-center gap-1.5 mb-1">
+              <span>🔥</span> Wildfire Library
+            </div>
+            <p className="text-[11px] text-stone-600 mb-4">Read • Log Journey • Pass Along</p>
+
+            {/* Live QR Code */}
+            <div className="bg-white p-3 rounded-xl border border-stone-200 inline-block shadow-sm mb-3">
+              <img
+                src={qrCodeUrl}
+                alt={`QR code for ${registeredBook.tracking_code}`}
+                className="w-40 h-40 object-contain mx-auto"
+              />
+            </div>
+
+            <div className="font-mono text-xl font-extrabold tracking-widest text-stone-900 mb-1">
+              {registeredBook.tracking_code}
+            </div>
+            <p className="text-[10px] text-stone-500 break-all">{trackingUrl}</p>
           </div>
 
           <div className="text-xs text-stone-600 bg-stone-50 rounded-xl p-4 mb-6 text-left space-y-1">
@@ -185,6 +213,13 @@ export default function AddBookPage() {
 
           <div className="flex flex-col sm:flex-row gap-3 justify-center">
             <button
+              onClick={() => window.print()}
+              className="px-4 py-2 bg-stone-900 hover:bg-amber-600 text-white text-xs font-semibold rounded-xl transition flex items-center justify-center gap-1.5"
+            >
+              <Printer className="w-3.5 h-3.5" />
+              Print Label / QR
+            </button>
+            <button
               onClick={() => {
                 setRegisteredBook(null);
                 setIsbn('');
@@ -192,15 +227,16 @@ export default function AddBookPage() {
                 setAuthor('');
                 setCoverUrl('');
               }}
-              className="px-4 py-2 bg-stone-900 hover:bg-amber-600 text-white text-xs font-semibold rounded-xl transition"
+              className="px-4 py-2 bg-stone-100 hover:bg-stone-200 text-stone-800 text-xs font-semibold rounded-xl transition"
             >
               Register Another Book
             </button>
             <Link
               href="/catalog"
-              className="px-4 py-2 bg-stone-100 hover:bg-stone-200 text-stone-800 text-xs font-semibold rounded-xl transition"
+              className="px-4 py-2 bg-stone-100 hover:bg-stone-200 text-stone-800 text-xs font-semibold rounded-xl transition flex items-center justify-center gap-1"
             >
-              View Catalog
+              Catalog
+              <ExternalLink className="w-3 h-3" />
             </Link>
           </div>
         </div>
@@ -211,7 +247,7 @@ export default function AddBookPage() {
             <h1 className="font-serif text-xl font-bold text-stone-900">Release a Book</h1>
           </div>
           <p className="text-xs text-stone-500 mb-6">
-            Enter the ISBN to autofill details, choose a genre, and set it free.
+            Enter the ISBN to autofill details and cover art, choose a genre, and set it free.
           </p>
 
           {errorMessage && (
@@ -221,7 +257,7 @@ export default function AddBookPage() {
             </div>
           )}
 
-          {/* ISBN Search Bar on Top */}
+          {/* 1. ISBN Search Bar on Top */}
           <div className="mb-6">
             <label htmlFor="isbn" className="block text-xs font-semibold text-stone-700 mb-1">
               ISBN Number
@@ -257,36 +293,54 @@ export default function AddBookPage() {
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-4">
-            {/* Populated Title */}
-            <div>
-              <label htmlFor="title" className="block text-xs font-semibold text-stone-700 mb-1">
-                Book Title *
-              </label>
-              <input
-                id="title"
-                type="text"
-                required
-                value={title}
-                onChange={(e) => setTitle(e.target.value)}
-                placeholder="Title will appear after checking ISBN"
-                className="w-full px-3 py-2 text-sm bg-stone-50 border border-stone-200 rounded-xl focus:border-amber-600 focus:bg-white outline-none transition"
-              />
-            </div>
+            {/* Cover Preview + Title/Author Fields */}
+            <div className="flex gap-4 items-start">
+              {coverUrl ? (
+                <div className="w-24 h-36 shrink-0 rounded-xl overflow-hidden border border-stone-200 shadow-sm bg-stone-100 relative">
+                  <img
+                    src={coverUrl}
+                    alt="Book Cover Preview"
+                    className="w-full h-full object-cover"
+                  />
+                </div>
+              ) : (
+                <div className="w-24 h-36 shrink-0 rounded-xl border border-dashed border-stone-300 bg-stone-50 flex flex-col items-center justify-center p-2 text-center text-stone-400">
+                  <span className="text-xl mb-1">📖</span>
+                  <span className="text-[10px] leading-tight">Cover preview</span>
+                </div>
+              )}
 
-            {/* Populated Author */}
-            <div>
-              <label htmlFor="author" className="block text-xs font-semibold text-stone-700 mb-1">
-                Author *
-              </label>
-              <input
-                id="author"
-                type="text"
-                required
-                value={author}
-                onChange={(e) => setAuthor(e.target.value)}
-                placeholder="Author will appear after checking ISBN"
-                className="w-full px-3 py-2 text-sm bg-stone-50 border border-stone-200 rounded-xl focus:border-amber-600 focus:bg-white outline-none transition"
-              />
+              <div className="flex-1 space-y-3">
+                <div>
+                  <label htmlFor="title" className="block text-xs font-semibold text-stone-700 mb-1">
+                    Book Title *
+                  </label>
+                  <input
+                    id="title"
+                    type="text"
+                    required
+                    value={title}
+                    onChange={(e) => setTitle(e.target.value)}
+                    placeholder="Auto-fills from ISBN"
+                    className="w-full px-3 py-2 text-sm bg-stone-50 border border-stone-200 rounded-xl focus:border-amber-600 focus:bg-white outline-none transition"
+                  />
+                </div>
+
+                <div>
+                  <label htmlFor="author" className="block text-xs font-semibold text-stone-700 mb-1">
+                    Author *
+                  </label>
+                  <input
+                    id="author"
+                    type="text"
+                    required
+                    value={author}
+                    onChange={(e) => setAuthor(e.target.value)}
+                    placeholder="Auto-fills from ISBN"
+                    className="w-full px-3 py-2 text-sm bg-stone-50 border border-stone-200 rounded-xl focus:border-amber-600 focus:bg-white outline-none transition"
+                  />
+                </div>
+              </div>
             </div>
 
             {/* 6 Genre Dropdown */}
@@ -330,11 +384,11 @@ export default function AddBookPage() {
             >
               {submitting ? (
                 <>
-                  <Loader2 className="w-4 h-4 animate-spin" />
+                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
                   Registering Book...
                 </>
               ) : (
-                'Register & Get Tracking Code'
+                'Register & Generate QR Label'
               )}
             </button>
           </form>
