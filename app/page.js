@@ -137,6 +137,7 @@ export default function CatalogPage() {
             Scan the plate, see where it has traveled, and pass it along into the wild for the next reader.
           </p>
 
+          {/* Three Hero Buttons */}
           <div className="flex flex-wrap items-center justify-center gap-3 pt-2">
             <Link
               href="/add-book"
@@ -145,9 +146,18 @@ export default function CatalogPage() {
               <Plus className="w-4 h-4" />
               <span>Release a Book</span>
             </Link>
+
+            <a
+              href="#catalog-view"
+              className="inline-flex items-center gap-2 px-5 py-2.5 bg-white hover:bg-stone-50 text-stone-800 border border-stone-200 rounded-xl text-xs sm:text-sm font-semibold transition cursor-pointer shadow-2xs"
+            >
+              <BookOpen className="w-3.5 h-3.5 text-stone-600" />
+              <span>Catalog</span>
+            </a>
+
             <a
               href="#how-it-works"
-              className="inline-flex items-center gap-2 px-5 py-2.5 bg-white hover:bg-stone-50 text-stone-700 border border-stone-200 rounded-xl text-xs sm:text-sm font-medium transition cursor-pointer"
+              className="inline-flex items-center gap-2 px-4 py-2.5 bg-stone-100 hover:bg-stone-200 text-stone-600 rounded-xl text-xs sm:text-sm font-medium transition cursor-pointer"
             >
               <span>How It Works</span>
               <ArrowRight className="w-3.5 h-3.5 text-stone-400" />
