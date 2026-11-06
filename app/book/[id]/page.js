@@ -173,40 +173,41 @@ export default function BookDetailPage() {
 
   return (
     <>
+      {/* Robust Print CSS that avoids blank pages */}
       <style jsx global>{`
         @media print {
-          body * {
-            visibility: hidden !important;
-          }
-          #print-plate, #print-plate * {
-            visibility: visible !important;
-          }
-          #print-plate {
-            position: absolute !important;
-            left: 0.5in !important;
-            top: 0.5in !important;
-            width: 3in !important;
-            height: 3in !important;
-            max-width: 3in !important;
-            max-height: 3in !important;
-            padding: 0.15in !important;
-            border: 2px dashed #1c1917 !important;
-            border-radius: 12px !important;
-            display: flex !important;
-            flex-direction: column !important;
-            align-items: center !important;
-            justify-content: space-between !important;
+          html, body {
             background: #ffffff !important;
-            box-shadow: none !important;
-            page-break-inside: avoid !important;
+            margin: 0 !important;
+            padding: 0 !important;
           }
           .no-print {
             display: none !important;
           }
+          #print-plate {
+            display: flex !important;
+            flex-direction: column !important;
+            align-items: center !important;
+            justify-content: space-between !important;
+            box-sizing: border-box !important;
+            width: 3in !important;
+            height: 3in !important;
+            margin: 0.25in !important;
+            padding: 0.15in !important;
+            border: 2px dashed #1c1917 !important;
+            border-radius: 12px !important;
+            background: #ffffff !important;
+            color: #1c1917 !important;
+            page-break-inside: avoid !important;
+          }
+          #print-plate img {
+            width: 1.4in !important;
+            height: 1.4in !important;
+          }
         }
       `}</style>
 
-      <div className="max-w-3xl mx-auto space-y-8 px-4 py-8">
+      <div className="max-w-4xl mx-auto space-y-8 px-4 py-8">
         <div className="no-print">
           <Link
             href="/"
@@ -217,87 +218,93 @@ export default function BookDetailPage() {
           </Link>
         </div>
 
-        {/* Book Summary Card */}
-        <div className="no-print bg-white border border-stone-200 rounded-2xl p-6 sm:p-8 shadow-xs flex flex-col sm:flex-row gap-6 items-start">
-          <div className="w-28 sm:w-36 flex-shrink-0 aspect-[2/3] bg-stone-100 rounded-xl overflow-hidden border border-stone-200 flex items-center justify-center">
-            {coverImage ? (
-              <img src={coverImage} alt={book.title} className="w-full h-full object-cover" />
-            ) : (
-              <BookOpen className="w-10 h-10 text-stone-400" />
-            )}
-          </div>
-
-          <div className="flex-1 space-y-2">
-            <div className="flex flex-wrap items-center gap-2">
-              <span className="font-mono text-xs font-bold bg-stone-900 text-white px-2 py-0.5 rounded-md">
-                {bookIdToDisplay}
-              </span>
-              <span
-                className={`text-xs font-medium px-2.5 py-0.5 rounded-full ${
-                  book.status === 'Ready for Next Reader'
-                    ? 'bg-emerald-100 text-emerald-800'
-                    : 'bg-amber-100 text-amber-800'
-                }`}
-              >
-                {book.status || 'In the Wild'}
-              </span>
-              {book.genre && (
-                <span className="text-xs text-stone-500 bg-stone-100 px-2 py-0.5 rounded-md">
-                  {book.genre}
-                </span>
+        {/* Unified Book & Bookplate Card */}
+        <div className="bg-white border border-stone-200 rounded-2xl p-6 sm:p-8 shadow-xs flex flex-col md:flex-row gap-6 items-start justify-between">
+          
+          {/* Left: Cover & Details */}
+          <div className="no-print flex flex-col sm:flex-row gap-5 items-start flex-1">
+            <div className="w-28 sm:w-32 flex-shrink-0 aspect-[2/3] bg-stone-100 rounded-xl overflow-hidden border border-stone-200 flex items-center justify-center">
+              {coverImage ? (
+                <img src={coverImage} alt={book.title} className="w-full h-full object-cover" />
+              ) : (
+                <BookOpen className="w-10 h-10 text-stone-400" />
               )}
             </div>
 
-            <h1 className="text-2xl sm:text-3xl font-serif font-bold text-stone-900 leading-tight">
-              {book.title}
-            </h1>
-            <p className="text-sm font-medium text-stone-600">by {book.author}</p>
-            <p className="text-xs text-stone-500 pt-1">
-              Tracked {stops.length} journey {stops.length === 1 ? 'stop' : 'stops'} so far.
-            </p>
+            <div className="space-y-2 flex-1">
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="font-mono text-xs font-bold bg-stone-900 text-white px-2 py-0.5 rounded-md">
+                  {bookIdToDisplay}
+                </span>
+                <span
+                  className={`text-xs font-medium px-2.5 py-0.5 rounded-full ${
+                    book.status === 'Ready for Next Reader'
+                      ? 'bg-emerald-100 text-emerald-800'
+                      : 'bg-amber-100 text-amber-800'
+                  }`}
+                >
+                  {book.status || 'In the Wild'}
+                </span>
+                {book.genre && (
+                  <span className="text-xs text-stone-500 bg-stone-100 px-2 py-0.5 rounded-md">
+                    {book.genre}
+                  </span>
+                )}
+              </div>
 
-            <div className="pt-3">
-              <button
-                type="button"
-                onClick={() => window.print()}
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-stone-100 hover:bg-stone-200 text-stone-800 text-xs font-semibold rounded-lg transition cursor-pointer border border-stone-200"
-              >
-                <Printer className="w-3.5 h-3.5" />
-                Print 3" × 3" Bookplate
-              </button>
+              <h1 className="text-2xl font-serif font-bold text-stone-900 leading-tight">
+                {book.title}
+              </h1>
+              <p className="text-sm font-medium text-stone-600">by {book.author}</p>
+              <p className="text-xs text-stone-500 pt-1">
+                Tracked {stops.length} journey {stops.length === 1 ? 'stop' : 'stops'} so far.
+              </p>
+              {book.release_location && (
+                <p className="text-xs text-stone-500 flex items-center gap-1">
+                  <MapPin className="w-3.5 h-3.5 text-stone-400" />
+                  Released at: {book.release_location}
+                </p>
+              )}
             </div>
           </div>
-        </div>
 
-        {/* 3x3 Bookplate Container */}
-        <div className="no-print bg-stone-50 border border-stone-200 rounded-2xl p-6 text-center">
-          <p className="text-xs font-semibold text-stone-700 mb-3">Bookplate &amp; QR Sticker</p>
-          <div
-            id="print-plate"
-            className="bg-amber-50/60 border-2 border-stone-800 rounded-2xl p-4 max-w-[280px] mx-auto text-center shadow-xs"
-          >
-            <div>
-              <div className="font-serif font-bold text-sm sm:text-base text-stone-900 flex items-center justify-center gap-1">
-                <span>🔥</span> Wildfire Library
+          {/* Right: Embedded Compact 3x3 Bookplate Sticker */}
+          <div className="w-full md:w-auto flex flex-col items-center border-t md:border-t-0 md:border-l border-stone-100 pt-4 md:pt-0 md:pl-6">
+            <div
+              id="print-plate"
+              className="bg-amber-50/70 border-2 border-stone-800 rounded-xl p-3 text-center shadow-xs flex flex-col items-center justify-between w-[180px] h-[180px]"
+            >
+              <div>
+                <div className="font-serif font-bold text-xs text-stone-900 flex items-center justify-center gap-1">
+                  <span>🔥</span> Wildfire Library
+                </div>
+                <p className="text-[9px] text-stone-600 tracking-tight">Read • Log Journey • Pass</p>
               </div>
-              <p className="text-[10px] text-stone-600 tracking-tight">Read • Log Journey • Pass Along</p>
-            </div>
 
-            <div className="bg-white p-2 rounded-xl border border-stone-200 inline-block shadow-xs my-2 print:my-1">
-              <img
-                src={qrCodeUrl}
-                alt={`QR code for ${bookIdToDisplay}`}
-                className="w-32 h-32 print:w-28 print:h-28 object-contain mx-auto"
-              />
-            </div>
-
-            <div>
-              <div className="text-[9px] font-bold uppercase tracking-wider text-stone-500">Book ID</div>
-              <div className="font-mono text-lg print:text-base font-extrabold tracking-widest text-stone-900">
-                {bookIdToDisplay}
+              <div className="bg-white p-1 rounded-lg border border-stone-200 inline-block my-1 shadow-xs">
+                <img
+                  src={qrCodeUrl}
+                  alt={`QR code for ${bookIdToDisplay}`}
+                  className="w-20 h-20 object-contain mx-auto"
+                />
               </div>
-              <p className="text-[9px] text-stone-400 font-mono tracking-tighter">wildfire-library.vercel.app</p>
+
+              <div>
+                <div className="font-mono text-xs font-black tracking-widest text-stone-900 leading-none">
+                  {bookIdToDisplay}
+                </div>
+                <p className="text-[8px] text-stone-500 font-mono tracking-tighter mt-0.5">wildfire-library.vercel.app</p>
+              </div>
             </div>
+
+            <button
+              type="button"
+              onClick={() => window.print()}
+              className="no-print mt-3 inline-flex items-center gap-1.5 px-3 py-1.5 bg-stone-900 hover:bg-amber-600 text-white text-xs font-semibold rounded-lg transition cursor-pointer shadow-xs w-full justify-center"
+            >
+              <Printer className="w-3.5 h-3.5" />
+              Print 3" × 3" Bookplate
+            </button>
           </div>
         </div>
 
