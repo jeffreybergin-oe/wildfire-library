@@ -100,10 +100,10 @@ export default function ProfilePage() {
       setSaved(true);
       setSaving(false);
 
-      // Redirect to /add-book after 1 second so the navbar updates
-      setTimeout(() => {
-        window.location.href = '/add-book';
-      }, 1000);
+      // Redirect to homepage after 1 second so the navbar updates
+     setTimeout(() => {
+  window.location.href = '/';
+}, 1000);
     } catch (err) {
       console.error('Unexpected save error:', err);
       setErrorMessage(err.message || 'An unexpected error occurred.');
@@ -234,7 +234,7 @@ export default function ProfilePage() {
             ) : saved ? (
               <>
                 <Check className="w-4 h-4 text-emerald-400" />
-                Saved! Redirecting to Register Book...
+                Saved! Redirecting to Home...
               </>
             ) : (
               'Save Profile'
