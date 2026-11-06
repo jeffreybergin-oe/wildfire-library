@@ -54,7 +54,6 @@ export default function BookDetailPage() {
     setLoading(true);
 
     try {
-      // Look up by book_id (WF-XXXX) first, fall back to UUID id
       let { data: bookData, error: bookError } = await supabase
         .from('books')
         .select('*')
@@ -73,7 +72,6 @@ export default function BookDetailPage() {
       if (bookData) {
         setBook(bookData);
 
-        // Fetch journey stops using the book's book_id or primary id
         const queryId = bookData.book_id || bookData.id;
         const { data: stopData, error: stopError } = await supabase
           .from('journey_stops')
@@ -175,7 +173,6 @@ export default function BookDetailPage() {
 
   return (
     <>
-      {/* Print-specific style: isolates the 3x3 bookplate and hides everything else */}
       <style jsx global>{`
         @media print {
           body * {
@@ -259,7 +256,6 @@ export default function BookDetailPage() {
               Tracked {stops.length} journey {stops.length === 1 ? 'stop' : 'stops'} so far.
             </p>
 
-            {/* Print Bookplate Button on Journey Page */}
             <div className="pt-3">
               <button
                 type="button"
@@ -273,7 +269,7 @@ export default function BookDetailPage() {
           </div>
         </div>
 
-        {/* 3x3 Bookplate Container (Visible on screen and print) */}
+        {/* 3x3 Bookplate Container */}
         <div className="no-print bg-stone-50 border border-stone-200 rounded-2xl p-6 text-center">
           <p className="text-xs font-semibold text-stone-700 mb-3">Bookplate &amp; QR Sticker</p>
           <div
@@ -359,4 +355,137 @@ export default function BookDetailPage() {
           {/* Dynamic Sub-Question Form */}
           {selectedAction && (
             <form onSubmit={handleFormSubmit} className="space-y-4 pt-4 border-t border-stone-800">
-              <div className="grid grid-cols-1 sm:grid-cols
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-[11px] text-stone-300 mb-1">Your Name or Reader Handle *</label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="e.g. Alex S."
+                    value={readerName}
+                    onChange={(e) => setReaderName(e.target.value)}
+                    className="w-full px-3.5 py-2 text-xs text-stone-900 bg-white rounded-lg focus:outline-none"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-[11px] text-stone-300 mb-1">
+                    {selectedAction === 'pickup' ? 'Where are you reading it?' : 'Where are you passing it?'}
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="e.g. Salt City Market or Syracuse, NY"
+                    value={locationCity}
+                    onChange={(e) => setLocationCity(e.target.value)}
+                    className="w-full px-3.5 py-2 text-xs text-stone-900 bg-white rounded-lg focus:outline-none"
+                  />
+                </div>
+              </div>
+
+              {selectedAction === 'finish' && (
+                <div className="space-y-3 pt-2">
+                  <div>
+                    <label className="block text-[11px] text-stone-300 mb-1">Your Rating</label>
+                    <select
+                      value={rating}
+                      onChange={(e) => setRating(Number(e.target.value))}
+                      className="w-full sm:w-auto px-3 py-2 text-xs text-stone-900 bg-white rounded-lg focus:outline-none cursor-pointer"
+                    >
+                      <option value={5}>⭐⭐⭐⭐⭐ (Loved it)</option>
+                      <option value={4}>⭐⭐⭐⭐ (Great read)</option>
+                      <option value={3}>⭐⭐⭐ (Good)</option>
+                      <option value={2}>⭐⭐ (Not for me)</option>
+                      <option value={1}>⭐ (Struggled to finish)</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="block text-[11px] text-stone-300 mb-1">
+                      Favorite quote, takeaway, or note to the next reader (Optional)
+                    </label>
+                    <textarea
+                      rows={3}
+                      placeholder="What did you think of the ending? Any quote that stuck with you?"
+                      value={takeaway}
+                      onChange={(e) => setTakeaway(e.target.value)}
+                      className="w-full px-3.5 py-2 text-xs text-stone-900 bg-white rounded-lg focus:outline-none"
+                    />
+                  </div>
+                </div>
+              )}
+
+              <button
+                type="submit"
+                disabled={submitting}
+                className="w-full py-2.5 bg-amber-600 hover:bg-amber-700 text-white font-medium text-xs rounded-lg transition disabled:opacity-50 flex items-center justify-center gap-2 cursor-pointer"
+              >
+                {submitting ? (
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    <span>Logging your stop...</span>
+                  </>
+                ) : (
+                  <span>
+                    {selectedAction === 'pickup'
+                      ? 'Start Reading & Mark "Being Read"'
+                      : 'Submit Review & Mark "Ready for Next Reader"'}
+                  </span>
+                )}
+              </button>
+            </form>
+          )}
+        </div>
+
+        {/* Journey Timeline History */}
+        <div className="no-print space-y-4">
+          <h2 className="text-lg font-serif font-bold text-stone-900">Book Journey History</h2>
+          {stops.length === 0 ? (
+            <div className="bg-white border border-stone-200 rounded-xl p-6 text-center text-xs text-stone-500">
+              This book is at the start of its journey. Be the first to log a stop!
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {stops.map((stop) => (
+                <div key={stop.id} className="bg-white border border-stone-200 rounded-xl p-4 shadow-xs space-y-2">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <span className="font-semibold text-xs text-stone-900">{stop.reader_name}</span>
+                      {stop.status_event && (
+                        <span className="text-[10px] bg-stone-100 text-stone-600 px-2 py-0.5 rounded font-mono">
+                          {stop.status_event}
+                        </span>
+                      )}
+                    </div>
+                    <span className="text-[11px] text-stone-400">
+                      {new Date(stop.created_at).toLocaleDateString()}
+                    </span>
+                  </div>
+
+                  {(stop.location || stop.location_city) && (
+                    <div className="flex items-center gap-1 text-[11px] text-stone-500">
+                      <MapPin className="w-3 h-3 text-stone-400" />
+                      <span>{stop.location || stop.location_city}</span>
+                    </div>
+                  )}
+
+                  {stop.takeaway && (
+                    <div className="text-xs text-stone-700 bg-stone-50 p-2.5 rounded-lg border border-stone-100 italic">
+                      "{stop.takeaway}"
+                    </div>
+                  )}
+
+                  {stop.rating && (
+                    <div className="flex items-center gap-1 text-amber-500 text-xs">
+                      {'★'.repeat(stop.rating)}
+                      {'☆'.repeat(5 - stop.rating)}
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+    </>
+  );
+}
