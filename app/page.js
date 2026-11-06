@@ -15,14 +15,11 @@ import {
   ArrowRight,
   QrCode,
   BookOpenCheck,
-  Send,
-  Radio,
-  Quote
+  Send
 } from 'lucide-react';
 
 export default function CatalogPage() {
   const [books, setBooks] = useState([]);
-  const [recentStops, setRecentStops] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('All');
@@ -54,16 +51,13 @@ export default function CatalogPage() {
         let stops = [];
         const { data: orderedStops, error: stopsError } = await supabase
           .from('journey_stops')
-          .select('*')
-          .order('created_at', { ascending: false })
-          .limit(10);
+          .select('location, status_event')
+          .order('created_at', { ascending: false });
 
         if (stopsError) {
-          // Fallback if created_at isn't present
           const { data: fallbackStops } = await supabase
             .from('journey_stops')
-            .select('*')
-            .limit(10);
+            .select('location, status_event');
           stops = fallbackStops || [];
         } else {
           stops = orderedStops || [];
@@ -86,13 +80,6 @@ export default function CatalogPage() {
           currentlyReading: activeReadersCount,
           locationsCount: uniqueLocations.size,
         });
-
-        // Filter recent stops that have a note or reader feedback for the ticker
-        const informativeStops = stops
-          .filter((s) => s.takeaway || s.location || s.status_event)
-          .slice(0, 3);
-
-        setRecentStops(informativeStops);
       } catch (err) {
         console.error('Error fetching catalog data:', err);
       } finally {
@@ -288,80 +275,21 @@ export default function CatalogPage() {
         </div>
       </section>
 
-      {/* Recent Dispatches from the Wild Ticker */}
-      {recentStops.length > 0 && (
-        <section className="max-w-5xl mx-auto px-4 pt-2">
-          <div className="space-y-3">
-            <div className="flex items-center gap-2">
-              <span className="relative flex h-2 w-2">
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75"></span>
-                <span className="relative inline-flex rounded-full h-2 w-2 bg-amber-500"></span>
-              </span>
-              <h2 className="font-serif font-bold text-base text-stone-900">Recent Dispatches from the Wild</h2>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-              {recentStops.map((stop, idx) => {
-                const matchedBook = books.find(
-                  (b) => b.id === stop.book_id || b.book_id === stop.book_id
-                );
-                const bookRoute = matchedBook?.book_id || matchedBook?.id || stop.book_id;
-                const bookTitle = matchedBook?.title || `Book ${stop.book_id}`;
-
-                return (
-                  <Link
-                    key={stop.id || idx}
-                    href={`/book/${bookRoute}`}
-                    className="group bg-white border border-stone-200 hover:border-amber-400/80 rounded-xl p-4 shadow-2xs hover:shadow-xs transition flex flex-col justify-between space-y-3"
-                  >
-                    <div className="space-y-2">
-                      <div className="flex items-center justify-between">
-                        <span className="font-mono text-[10px] font-bold bg-stone-100 group-hover:bg-amber-100 text-stone-700 px-2 py-0.5 rounded transition">
-                          {stop.book_id}
-                        </span>
-                        <span className="text-[10px] text-stone-500 font-medium">
-                          {stop.status_event}
-                        </span>
-                      </div>
-
-                      <p className="font-serif font-bold text-xs text-stone-900 line-clamp-1 group-hover:text-amber-800 transition">
-                        {bookTitle}
-                      </p>
-
-                      {stop.takeaway ? (
-                        <p className="text-[11px] text-stone-600 italic line-clamp-2 bg-stone-50 p-2 rounded border-l-2 border-amber-500">
-                          "{stop.takeaway}"
-                        </p>
-                      ) : (
-                        <p className="text-[11px] text-stone-400 italic">
-                          Logged with no review.
-                        </p>
-                      )}
-                    </div>
-
-                    <div className="pt-2 border-t border-stone-100 flex items-center justify-between text-[10px] text-stone-500">
-                      <span className="font-medium text-stone-800">
-                        {stop.reader_name || 'Reader'}
-                      </span>
-                      {stop.location && (
-                        <span className="flex items-center gap-1 truncate max-w-[120px] text-stone-400">
-                          <MapPin className="w-2.5 h-2.5 shrink-0" />
-                          {stop.location}
-                        </span>
-                      )}
-                    </div>
-                  </Link>
-                );
-              })}
-            </div>
+      {/* Catalog Search & Grid (Directly below How It Works) */}
+      <section id="catalog-view" className="max-w-5xl mx-auto px-4 space-y-6 pt-4">
+        {/* Section Header & Divider */}
+        <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-2 pb-2 border-b border-stone-200">
+          <div>
+            <span className="text-[11px] font-mono font-bold tracking-widest uppercase text-stone-400">Directory</span>
+            <h2 className="font-serif font-bold text-2xl text-stone-900">Community Catalog</h2>
           </div>
-        </section>
-      )}
+          <p className="text-stone-500 text-xs">
+            Showing {filteredBooks.length} {filteredBooks.length === 1 ? 'copy' : 'copies'} in circulation
+          </p>
+        </div>
 
-      {/* Catalog Search & Grid */}
-      <section id="catalog-view" className="max-w-5xl mx-auto px-4 space-y-6 pt-2">
         {/* Controls Bar */}
-        <div className="flex flex-col sm:flex-row gap-3 items-center justify-between pb-4 border-b border-stone-200">
+        <div className="flex flex-col sm:flex-row gap-3 items-center justify-between pb-2">
           <div className="relative w-full sm:w-80">
             <Search className="w-4 h-4 text-stone-400 absolute left-3 top-1/2 -translate-y-1/2" />
             <input
