@@ -44,7 +44,7 @@ export default function BookDetailPage() {
         const cleanParam = decodeURIComponent(bookIdParam).trim();
 
         // 1. Look up book in `id` first, then `book_id`
-        let { data: bookData, error: idError } = await supabase
+        let { data: bookData } = await supabase
           .from('books')
           .select('*')
           .eq('id', cleanParam)
@@ -67,7 +67,7 @@ export default function BookDetailPage() {
 
         setBook(bookData);
 
-        // 2. Fetch journey stops safely (doesn't crash the page if empty or schema differs)
+        // 2. Fetch journey stops safely
         try {
           const targetId = bookData.id || bookData.book_id || cleanParam;
           const { data: stopsData, error: stopsError } = await supabase
@@ -196,7 +196,7 @@ export default function BookDetailPage() {
       </div>
 
       {/* Book Info Card */}
-      <div className="bg-white border border-stone-200 rounded-2xl p-6 shadow-xs flex flex-col sm:flex-row gap-6">
+      <div className="bg-white border border-stone-200 rounded-2xl p-6 shadow-xs flex flex-col md:flex-row gap-6 items-start justify-between">
         <div className="w-28 sm:w-32 aspect-[2/3] bg-stone-100 rounded-xl overflow-hidden border border-stone-200 flex items-center justify-center shrink-0">
           {coverImage ? (
             <img src={coverImage} alt={book.title} className="w-full h-full object-cover" />
@@ -204,6 +204,7 @@ export default function BookDetailPage() {
             <BookOpen className="w-8 h-8 text-stone-300" />
           )}
         </div>
+
         <div className="space-y-3 flex-1">
           <div className="flex flex-wrap items-center gap-2">
             <span className="font-mono text-xs font-bold bg-stone-900 text-white px-2 py-0.5 rounded">
@@ -240,6 +241,19 @@ export default function BookDetailPage() {
               </div>
             )}
           </div>
+        </div>
+
+        {/* Restored On-Screen QR Code Box */}
+        <div className="bg-stone-50 border border-stone-200 rounded-xl p-3 flex flex-col items-center justify-center text-center shrink-0 self-center md:self-start">
+          <div className="bg-white p-2 rounded-lg border border-stone-200 shadow-2xs">
+            <img 
+              src={qrCodeApiUrl} 
+              alt={`QR Code for ${displayId}`} 
+              className="w-20 h-20 sm:w-24 sm:h-24 object-contain" 
+            />
+          </div>
+          <span className="font-mono text-[10px] font-bold text-stone-800 mt-2">{displayId}</span>
+          <span className="text-[9px] text-stone-400">Scan to share</span>
         </div>
       </div>
 
@@ -399,7 +413,7 @@ export default function BookDetailPage() {
         </div>
       )}
 
-      {/* Printable Bookplate */}
+      {/* Printable Bookplate (hidden on screen, visible only when printing) */}
       <div className="hidden print:block fixed inset-0 bg-white p-6">
         <div className="w-[3in] h-[3in] border-2 border-dashed border-stone-900 p-3 mx-auto flex flex-col justify-between items-center text-center">
           <div className="space-y-0.5">
