@@ -41,40 +41,41 @@ export default function BookDetailPage() {
       setErrorMsg('');
 
       try {
-        // Query by book_id text directly to prevent PostgreSQL type-cast crashes
-        const { data: bookData, error: bookError } = await supabase
+        const cleanParam = decodeURIComponent(bookIdParam).trim();
+
+        // 1. Check `id` column first (where WF-103 is stored)
+        let { data: bookData, error: idError } = await supabase
           .from('books')
           .select('*')
-          .eq('book_id', bookIdParam)
+          .eq('id', cleanParam)
           .maybeSingle();
 
-        if (bookError) throw bookError;
-
-        let finalBook = bookData;
-
-        // Fallback: If not found by book_id and param is numeric, check id column
-        if (!finalBook && !isNaN(Number(bookIdParam))) {
-          const { data: idData } = await supabase
+        // 2. If not found in `id`, check `book_id`
+        if (!bookData) {
+          const { data: bookIdData, error: bookIdError } = await supabase
             .from('books')
             .select('*')
-            .eq('id', Number(bookIdParam))
+            .eq('book_id', cleanParam)
             .maybeSingle();
-          finalBook = idData;
+
+          if (bookIdError) throw bookIdError;
+          bookData = bookIdData;
         }
 
-        if (!finalBook) {
+        if (!bookData) {
           setErrorMsg('Book not found.');
           setLoading(false);
           return;
         }
 
-        setBook(finalBook);
+        setBook(bookData);
 
-        const queryId = finalBook.book_id || finalBook.id;
+        // Match journey stops by whichever identifier is populated
+        const queryIdentifier = bookData.book_id || bookData.id;
         const { data: stopsData, error: stopsError } = await supabase
           .from('journey_stops')
           .select('*')
-          .eq('book_id', queryId)
+          .or(`book_id.eq.${queryIdentifier},book_id.eq.${cleanParam}`)
           .order('created_at', { ascending: false });
 
         if (stopsError) throw stopsError;
