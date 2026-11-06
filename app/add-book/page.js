@@ -342,4 +342,4 @@ export default function AddBookPage() {
       )}
     </div>
   );
-}e client';
+}
