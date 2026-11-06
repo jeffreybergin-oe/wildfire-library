@@ -43,23 +43,20 @@ export default function BookDetailPage() {
       try {
         const cleanParam = decodeURIComponent(bookIdParam).trim();
 
-        // 1. Check `id` column first (where WF-103 is stored)
+        // 1. Look up book in `id` first, then `book_id`
         let { data: bookData, error: idError } = await supabase
           .from('books')
           .select('*')
           .eq('id', cleanParam)
           .maybeSingle();
 
-        // 2. If not found in `id`, check `book_id`
         if (!bookData) {
-          const { data: bookIdData, error: bookIdError } = await supabase
+          const { data: altData } = await supabase
             .from('books')
             .select('*')
             .eq('book_id', cleanParam)
             .maybeSingle();
-
-          if (bookIdError) throw bookIdError;
-          bookData = bookIdData;
+          bookData = altData;
         }
 
         if (!bookData) {
@@ -70,16 +67,24 @@ export default function BookDetailPage() {
 
         setBook(bookData);
 
-        // Match journey stops by whichever identifier is populated
-        const queryIdentifier = bookData.book_id || bookData.id;
-        const { data: stopsData, error: stopsError } = await supabase
-          .from('journey_stops')
-          .select('*')
-          .or(`book_id.eq.${queryIdentifier},book_id.eq.${cleanParam}`)
-          .order('created_at', { ascending: false });
+        // 2. Fetch journey stops safely (doesn't crash the page if empty or schema differs)
+        try {
+          const targetId = bookData.id || bookData.book_id || cleanParam;
+          const { data: stopsData, error: stopsError } = await supabase
+            .from('journey_stops')
+            .select('*')
+            .eq('book_id', targetId)
+            .order('created_at', { ascending: false });
 
-        if (stopsError) throw stopsError;
-        setStops(stopsData || []);
+          if (!stopsError && stopsData) {
+            setStops(stopsData);
+          } else {
+            setStops([]);
+          }
+        } catch (stopErr) {
+          console.warn('Could not load stops:', stopErr);
+          setStops([]);
+        }
       } catch (err) {
         console.error('Error fetching book details:', err);
         setErrorMsg('Failed to load book journey.');
@@ -96,7 +101,7 @@ export default function BookDetailPage() {
     setSubmittingStop(true);
 
     try {
-      const activeBookId = book.book_id || book.id;
+      const activeBookId = book.id || book.book_id;
       const payload = {
         book_id: activeBookId,
         reader_name: newStop.reader_name.trim(),
@@ -157,7 +162,7 @@ export default function BookDetailPage() {
     );
   }
 
-  const displayId = book.book_id || book.id;
+  const displayId = book.id || book.book_id;
   const coverImage = book.cover_image || book.cover_image_url;
   const qrTargetUrl = typeof window !== 'undefined' ? `${window.location.origin}/book/${displayId}` : `https://wildfire-library.vercel.app/book/${displayId}`;
   const qrCodeApiUrl = `https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=${encodeURIComponent(qrTargetUrl)}&margin=0`;
