@@ -3,151 +3,295 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { supabase } from '../lib/supabase';
-import { BookOpen, Loader2, Search } from 'lucide-react';
-
-const GENRES = [
-  'All',
-  'Non-Fiction',
-  'Sci-Fi / Fantasy',
-  'Mystery / Thriller',
-  'Personal Growth / Business',
-  'Fiction',
-  'Biography',
-];
+import { 
+  BookOpen, 
+  MapPin, 
+  Search, 
+  Plus, 
+  Sparkles, 
+  Compass, 
+  Users, 
+  Loader2,
+  ArrowRight
+} from 'lucide-react';
 
 export default function CatalogPage() {
   const [books, setBooks] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [searchQuery, setSearchQuery] = useState('');
-  const [selectedGenre, setSelectedGenre] = useState('All');
+  const [searchTerm, setSearchTerm] = useState('');
+  const [statusFilter, setStatusFilter] = useState('All');
+
+  // Live Metrics State
+  const [metrics, setMetrics] = useState({
+    totalBooks: 0,
+    totalStops: 0,
+    currentlyReading: 0,
+    locationsCount: 0,
+  });
 
   useEffect(() => {
-    async function fetchBooks() {
+    async function fetchCatalogAndMetrics() {
       setLoading(true);
+
       try {
-        const { data, error } = await supabase
+        // 1. Fetch Books Catalog
+        const { data: booksData, error: booksError } = await supabase
           .from('books')
           .select('*')
           .order('created_at', { ascending: false });
 
-        if (error) throw error;
-        setBooks(data || []);
+        if (booksError) throw booksError;
+        setBooks(booksData || []);
+
+        // 2. Fetch Journey Stops for Community Metrics
+        const { data: stopsData } = await supabase
+          .from('journey_stops')
+          .select('location, status_event');
+
+        const stops = stopsData || [];
+        const booksList = booksData || [];
+
+        // Calculate unique drop spots
+        const uniqueLocations = new Set(
+          stops
+            .map((s) => s.location?.trim().toLowerCase())
+            .filter(Boolean)
+        );
+
+        const activeReadersCount = booksList.filter(
+          (b) => b.status === 'Currently Reading'
+        ).length;
+
+        setMetrics({
+          totalBooks: booksList.length,
+          totalStops: stops.length,
+          currentlyReading: activeReadersCount,
+          locationsCount: uniqueLocations.size,
+        });
       } catch (err) {
-        console.error('Error fetching catalog books:', err);
+        console.error('Error fetching catalog data:', err);
       } finally {
         setLoading(false);
       }
     }
-    fetchBooks();
+
+    fetchCatalogAndMetrics();
   }, []);
 
+  // Filter books by search and status
   const filteredBooks = books.filter((book) => {
-    const matchesSearch =
-      book.title?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      book.author?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      book.book_id?.toLowerCase().includes(searchQuery.toLowerCase());
+    const matchesSearch = 
+      book.title?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      book.author?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (book.book_id || book.id || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+      book.genre?.toLowerCase().includes(searchTerm.toLowerCase());
 
-    const matchesGenre =
-      selectedGenre === 'All' || book.genre === selectedGenre;
+    const matchesStatus = 
+      statusFilter === 'All' || book.status === statusFilter;
 
-    return matchesSearch && matchesGenre;
+    return matchesSearch && matchesStatus;
   });
 
   return (
-    <div className="max-w-6xl mx-auto px-4 py-6 space-y-6">
-      {/* Search & Genre Filters */}
-      <div className="space-y-3">
-        <div className="relative">
-          <Search className="w-4 h-4 text-stone-400 absolute left-3.5 top-3" />
-          <input
-            type="text"
-            placeholder="Search by title, author, or Book ID (e.g. WF-008)..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full pl-10 pr-4 py-2 text-xs bg-white border border-stone-200 rounded-xl focus:outline-none focus:ring-1 focus:ring-amber-500 text-stone-900 shadow-xs"
-          />
-        </div>
+    <div className="space-y-12 pb-16">
+      {/* Editorial Hero Section */}
+      <section className="relative overflow-hidden bg-gradient-to-b from-stone-100/80 to-stone-50/20 border-b border-stone-200 py-16 sm:py-20 px-4">
+        <div className="max-w-4xl mx-auto text-center space-y-6">
+          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-amber-100 text-amber-900 text-xs font-semibold tracking-wide border border-amber-200">
+            <Sparkles className="w-3.5 h-3.5 text-amber-700" />
+            <span>A Free, Roaming Community Library</span>
+          </div>
 
-        <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-none">
-          {GENRES.map((genre) => (
-            <button
-              key={genre}
-              type="button"
-              onClick={() => setSelectedGenre(genre)}
-              className={`px-3 py-1.5 rounded-lg text-xs font-medium whitespace-nowrap transition cursor-pointer ${
-                selectedGenre === genre
-                  ? 'bg-stone-900 text-white'
-                  : 'bg-white text-stone-600 border border-stone-200 hover:bg-stone-50'
-              }`}
+          <h1 className="font-serif font-bold text-3xl sm:text-5xl text-stone-900 tracking-tight leading-tight">
+            Books meant to wander, <br className="hidden sm:inline" />
+            not sit on shelves.
+          </h1>
+
+          <p className="max-w-xl mx-auto text-stone-600 text-sm sm:text-base leading-relaxed">
+            Every book in the Wildfire Library carries a unique passport. 
+            Scan the plate, see where it has traveled, and pass it along into the wild for the next reader.
+          </p>
+
+          <div className="flex flex-wrap items-center justify-center gap-3 pt-2">
+            <Link
+              href="/add-book"
+              className="inline-flex items-center gap-2 px-5 py-2.5 bg-stone-900 hover:bg-stone-800 text-white rounded-xl text-xs sm:text-sm font-semibold transition shadow-xs cursor-pointer"
             >
-              {genre}
-            </button>
-          ))}
+              <Plus className="w-4 h-4" />
+              <span>Release a Book</span>
+            </Link>
+            <a
+              href="#catalog-view"
+              className="inline-flex items-center gap-2 px-5 py-2.5 bg-white hover:bg-stone-50 text-stone-700 border border-stone-200 rounded-xl text-xs sm:text-sm font-medium transition cursor-pointer"
+            >
+              <span>Explore Catalog</span>
+              <ArrowRight className="w-3.5 h-3.5 text-stone-400" />
+            </a>
+          </div>
         </div>
-      </div>
+      </section>
 
-      {/* Catalog Grid */}
-      {loading ? (
-        <div className="py-20 text-center text-stone-500 text-xs flex flex-col items-center justify-center gap-2">
-          <Loader2 className="w-5 h-5 animate-spin text-amber-600" />
-          <span>Loading catalog...</span>
-        </div>
-      ) : filteredBooks.length === 0 ? (
-        <div className="bg-white border border-stone-200 rounded-xl p-8 text-center text-xs text-stone-500">
-          No books found matching your filters.
-        </div>
-      ) : (
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
-          {filteredBooks.map((book) => {
-            const displayId = book.book_id || book.id;
-            const coverImage = book.cover_image || book.cover_image_url;
+      {/* Live Impact Metrics Bar */}
+      <section className="max-w-5xl mx-auto px-4 -mt-6">
+        <div className="bg-white border border-stone-200 rounded-2xl shadow-xs p-6 grid grid-cols-2 lg:grid-cols-4 gap-6 divide-y lg:divide-y-0 lg:divide-x divide-stone-100">
+          <div className="flex items-center gap-4 pt-2 lg:pt-0">
+            <div className="w-10 h-10 rounded-xl bg-amber-50 text-amber-800 flex items-center justify-center shrink-0 border border-amber-100">
+              <BookOpen className="w-5 h-5" />
+            </div>
+            <div>
+              <p className="font-mono text-xl sm:text-2xl font-bold text-stone-900">
+                {metrics.totalBooks}
+              </p>
+              <p className="text-[11px] font-medium text-stone-500 uppercase tracking-wider">
+                In Circulation
+              </p>
+            </div>
+          </div>
 
-            return (
-              <div
-                key={displayId}
-                className="bg-white border border-stone-200 rounded-xl overflow-hidden hover:border-stone-400 transition flex flex-col justify-between group"
+          <div className="flex items-center gap-4 pt-4 lg:pt-0 lg:pl-6">
+            <div className="w-10 h-10 rounded-xl bg-emerald-50 text-emerald-800 flex items-center justify-center shrink-0 border border-emerald-100">
+              <Compass className="w-5 h-5" />
+            </div>
+            <div>
+              <p className="font-mono text-xl sm:text-2xl font-bold text-stone-900">
+                {metrics.totalStops}
+              </p>
+              <p className="text-[11px] font-medium text-stone-500 uppercase tracking-wider">
+                Stops Logged
+              </p>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-4 pt-4 lg:pt-0 lg:pl-6">
+            <div className="w-10 h-10 rounded-xl bg-blue-50 text-blue-800 flex items-center justify-center shrink-0 border border-blue-100">
+              <Users className="w-5 h-5" />
+            </div>
+            <div>
+              <p className="font-mono text-xl sm:text-2xl font-bold text-stone-900">
+                {metrics.currentlyReading}
+              </p>
+              <p className="text-[11px] font-medium text-stone-500 uppercase tracking-wider">
+                Being Read Now
+              </p>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-4 pt-4 lg:pt-0 lg:pl-6">
+            <div className="w-10 h-10 rounded-xl bg-rose-50 text-rose-800 flex items-center justify-center shrink-0 border border-rose-100">
+              <MapPin className="w-5 h-5" />
+            </div>
+            <div>
+              <p className="font-mono text-xl sm:text-2xl font-bold text-stone-900">
+                {metrics.locationsCount}
+              </p>
+              <p className="text-[11px] font-medium text-stone-500 uppercase tracking-wider">
+                Drop Locations
+              </p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Catalog Search & Grid */}
+      <section id="catalog-view" className="max-w-5xl mx-auto px-4 space-y-6 pt-4">
+        {/* Controls Bar */}
+        <div className="flex flex-col sm:flex-row gap-3 items-center justify-between pb-4 border-b border-stone-200">
+          <div className="relative w-full sm:w-80">
+            <Search className="w-4 h-4 text-stone-400 absolute left-3 top-1/2 -translate-y-1/2" />
+            <input
+              type="text"
+              placeholder="Search by title, author, or book ID..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="w-full pl-9 pr-3 py-2 bg-stone-50 border border-stone-200 rounded-xl text-xs text-stone-900 focus:outline-none focus:ring-1 focus:ring-amber-500"
+            />
+          </div>
+
+          <div className="flex items-center gap-1.5 w-full sm:w-auto overflow-x-auto pb-1 sm:pb-0">
+            {['All', 'Ready for Next Reader', 'Currently Reading'].map((status) => (
+              <button
+                key={status}
+                type="button"
+                onClick={() => setStatusFilter(status)}
+                className={`px-3 py-1.5 rounded-lg text-xs font-medium whitespace-nowrap transition cursor-pointer ${
+                  statusFilter === status
+                    ? 'bg-stone-900 text-white'
+                    : 'bg-stone-100 text-stone-600 hover:bg-stone-200'
+                }`}
               >
-                <Link href={`/book/${displayId}`} className="p-3 space-y-2 block">
-                  <div className="w-full aspect-[2/3] bg-stone-100 rounded-lg overflow-hidden border border-stone-100 flex items-center justify-center">
-                    {coverImage ? (
+                {status}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Books Grid */}
+        {loading ? (
+          <div className="py-20 text-center text-stone-500 text-xs flex flex-col items-center justify-center gap-2">
+            <Loader2 className="w-5 h-5 animate-spin text-amber-600" />
+            <span>Loading community catalog...</span>
+          </div>
+        ) : filteredBooks.length === 0 ? (
+          <div className="bg-white border border-dashed border-stone-200 rounded-2xl p-12 text-center space-y-3">
+            <BookOpen className="w-8 h-8 text-stone-300 mx-auto" />
+            <p className="text-stone-800 text-sm font-medium">No matching books found</p>
+            <p className="text-stone-500 text-xs">Try adjusting your search terms or release a new copy.</p>
+          </div>
+        ) : (
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4 sm:gap-6">
+            {filteredBooks.map((book) => {
+              const displayId = book.book_id || book.id;
+              const coverImg = book.cover_image || book.cover_image_url;
+
+              return (
+                <Link
+                  key={book.id}
+                  href={`/book/${displayId}`}
+                  className="group bg-white border border-stone-200 rounded-xl overflow-hidden hover:border-stone-400 hover:shadow-xs transition flex flex-col"
+                >
+                  <div className="aspect-[2/3] bg-stone-100 relative overflow-hidden flex items-center justify-center">
+                    {coverImg ? (
                       <img
-                        src={coverImage}
+                        src={coverImg}
                         alt={book.title}
-                        className="w-full h-full object-cover"
+                        className="w-full h-full object-cover group-hover:scale-102 transition duration-300"
                       />
                     ) : (
-                      <BookOpen className="w-6 h-6 text-stone-300" />
+                      <BookOpen className="w-8 h-8 text-stone-300" />
                     )}
+                    <span className="absolute top-2 left-2 font-mono text-[10px] font-bold bg-stone-900/80 backdrop-blur-xs text-white px-2 py-0.5 rounded">
+                      {displayId}
+                    </span>
                   </div>
 
-                  <div className="space-y-1">
-                    <div className="flex items-center justify-between">
-                      <span className="font-mono text-[10px] font-bold text-stone-600">
-                        {displayId}
-                      </span>
+                  <div className="p-3 flex-1 flex flex-col justify-between space-y-2">
+                    <div>
+                      <h2 className="font-serif font-bold text-xs sm:text-sm text-stone-900 line-clamp-1 group-hover:text-amber-800 transition">
+                        {book.title}
+                      </h2>
+                      <p className="text-[11px] text-stone-500 line-clamp-1 mt-0.5">
+                        {book.author}
+                      </p>
                     </div>
 
-                    <h2 className="font-serif font-bold text-stone-900 text-xs leading-snug line-clamp-2">
-                      {book.title}
-                    </h2>
-                    <p className="text-[11px] text-stone-500 line-clamp-1">{book.author}</p>
+                    <div className="pt-2 border-t border-stone-100 flex items-center justify-between text-[10px]">
+                      <span className="font-medium text-amber-800 bg-amber-50 px-2 py-0.5 rounded-full">
+                        {book.status || 'In the Wild'}
+                      </span>
+                      {book.release_location && (
+                        <span className="text-stone-400 truncate max-w-[90px] flex items-center gap-0.5">
+                          <MapPin className="w-2.5 h-2.5 shrink-0" />
+                          {book.release_location}
+                        </span>
+                      )}
+                    </div>
                   </div>
                 </Link>
-
-                <div className="px-3 py-2 bg-stone-50 border-t border-stone-100 text-[10px] text-stone-500 flex justify-between items-center">
-                  <span className="truncate">{book.curator_name || 'Reader'}</span>
-                  <Link
-                    href={`/book/${displayId}`}
-                    className="text-amber-700 font-semibold shrink-0"
-                  >
-                    View →
-                  </Link>
-                </div>
-              </div>
-            );
-          })}
-        </div>
-      )}
+              );
+            })}
+          </div>
+        )}
+      </section>
     </div>
   );
 }
