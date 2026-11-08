@@ -11,6 +11,7 @@ import {
   Sparkles, 
   Compass, 
   Users, 
+  UserCheck,
   Loader2,
   ArrowRight,
   QrCode,
@@ -30,6 +31,7 @@ export default function CatalogPage() {
     totalStops: 0,
     currentlyReading: 0,
     locationsCount: 0,
+    readersCount: 0,
   });
 
   useEffect(() => {
@@ -63,6 +65,11 @@ export default function CatalogPage() {
           stops = orderedStops || [];
         }
 
+        // 3. Fetch Registered Readers Count from profiles
+        const { count: profilesCount } = await supabase
+          .from('profiles')
+          .select('*', { count: 'exact', head: true });
+
         // Calculate unique drop spots
         const uniqueLocations = new Set(
           stops
@@ -79,6 +86,7 @@ export default function CatalogPage() {
           totalStops: stops.length,
           currentlyReading: activeReadersCount,
           locationsCount: uniqueLocations.size,
+          readersCount: profilesCount || 0,
         });
       } catch (err) {
         console.error('Error fetching catalog data:', err);
@@ -153,10 +161,10 @@ export default function CatalogPage() {
         </div>
       </section>
 
-      {/* Live Impact Metrics Bar */}
+      {/* Live Impact Metrics Bar (5 Metrics) */}
       <section className="max-w-5xl mx-auto px-4 -mt-6">
-        <div className="bg-white border border-stone-200 rounded-2xl shadow-xs p-6 grid grid-cols-2 lg:grid-cols-4 gap-6 divide-y lg:divide-y-0 lg:divide-x divide-stone-100">
-          <div className="flex items-center gap-4 pt-2 lg:pt-0">
+        <div className="bg-white border border-stone-200 rounded-2xl shadow-xs p-6 grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-6 divide-y lg:divide-y-0 lg:divide-x divide-stone-100">
+          <div className="flex items-center gap-3.5 pt-2 lg:pt-0">
             <div className="w-10 h-10 rounded-xl bg-amber-50 text-amber-800 flex items-center justify-center shrink-0 border border-amber-100">
               <BookOpen className="w-5 h-5" />
             </div>
@@ -170,7 +178,7 @@ export default function CatalogPage() {
             </div>
           </div>
 
-          <div className="flex items-center gap-4 pt-4 lg:pt-0 lg:pl-6">
+          <div className="flex items-center gap-3.5 pt-4 lg:pt-0 lg:pl-5">
             <div className="w-10 h-10 rounded-xl bg-emerald-50 text-emerald-800 flex items-center justify-center shrink-0 border border-emerald-100">
               <Compass className="w-5 h-5" />
             </div>
@@ -184,7 +192,7 @@ export default function CatalogPage() {
             </div>
           </div>
 
-          <div className="flex items-center gap-4 pt-4 lg:pt-0 lg:pl-6">
+          <div className="flex items-center gap-3.5 pt-4 lg:pt-0 lg:pl-5">
             <div className="w-10 h-10 rounded-xl bg-blue-50 text-blue-800 flex items-center justify-center shrink-0 border border-blue-100">
               <Users className="w-5 h-5" />
             </div>
@@ -198,7 +206,7 @@ export default function CatalogPage() {
             </div>
           </div>
 
-          <div className="flex items-center gap-4 pt-4 lg:pt-0 lg:pl-6">
+          <div className="flex items-center gap-3.5 pt-4 lg:pt-0 lg:pl-5">
             <div className="w-10 h-10 rounded-xl bg-rose-50 text-rose-800 flex items-center justify-center shrink-0 border border-rose-100">
               <MapPin className="w-5 h-5" />
             </div>
@@ -208,6 +216,20 @@ export default function CatalogPage() {
               </p>
               <p className="text-[11px] font-medium text-stone-500 uppercase tracking-wider">
                 Drop Locations
+              </p>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-3.5 pt-4 lg:pt-0 lg:pl-5 col-span-2 sm:col-span-1">
+            <div className="w-10 h-10 rounded-xl bg-purple-50 text-purple-800 flex items-center justify-center shrink-0 border border-purple-100">
+              <UserCheck className="w-5 h-5" />
+            </div>
+            <div>
+              <p className="font-mono text-xl sm:text-2xl font-bold text-stone-900">
+                {metrics.readersCount}
+              </p>
+              <p className="text-[11px] font-medium text-stone-500 uppercase tracking-wider">
+                Readers
               </p>
             </div>
           </div>
