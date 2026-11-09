@@ -12,6 +12,9 @@ import {
   Compass, 
   Users, 
   UserCheck,
+  UserPlus,
+  Library,
+  AlertCircle,
   Loader2,
   ArrowRight,
   QrCode,
@@ -24,6 +27,10 @@ export default function CatalogPage() {
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('All');
+
+  // Auth & Profile State
+  const [user, setUser] = useState(null);
+  const [profileIncomplete, setProfileIncomplete] = useState(false);
 
   // Live Metrics State
   const [metrics, setMetrics] = useState({
@@ -39,6 +46,28 @@ export default function CatalogPage() {
       setLoading(true);
 
       try {
+        // 0. Check Auth Session & Profile Completeness
+        const { data: { user: currentUser } } = await supabase.auth.getUser();
+        setUser(currentUser || null);
+
+        if (currentUser) {
+          const { data: profile } = await supabase
+            .from('profiles')
+            .select('*')
+            .eq('id', currentUser.id)
+            .maybeSingle();
+
+          const hasName = profile && (
+            profile.full_name || 
+            profile.display_name || 
+            profile.name || 
+            profile.username
+          );
+          if (!hasName) {
+            setProfileIncomplete(true);
+          }
+        }
+
         // 1. Fetch Books Catalog
         const { data: booksData, error: booksError } = await supabase
           .from('books')
@@ -114,6 +143,26 @@ export default function CatalogPage() {
 
   return (
     <div className="space-y-12 pb-16">
+      {/* Incomplete Profile Reminder Banner */}
+      {user && profileIncomplete && (
+        <div className="bg-amber-50 border-b border-amber-200 px-4 py-2.5">
+          <div className="max-w-5xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-2 text-xs text-amber-900">
+            <div className="flex items-center gap-2">
+              <AlertCircle className="w-4 h-4 text-amber-700 shrink-0" />
+              <span>
+                <strong>Finish setting up your profile:</strong> Add your reader name so your stops and released books appear properly.
+              </span>
+            </div>
+            <Link
+              href="/profile"
+              className="font-semibold underline hover:text-amber-700 whitespace-nowrap"
+            >
+              Complete Profile →
+            </Link>
+          </div>
+        </div>
+      )}
+
       {/* Editorial Hero Section */}
       <section className="relative overflow-hidden bg-gradient-to-b from-stone-100/80 to-stone-50/20 border-b border-stone-200 py-16 sm:py-20 px-4">
         <div className="max-w-4xl mx-auto text-center space-y-6">
@@ -132,31 +181,52 @@ export default function CatalogPage() {
             Scan the plate, see where it has traveled, and pass it along into the wild for the next reader.
           </p>
 
-          {/* Three Hero Buttons */}
-          <div className="flex flex-wrap items-center justify-center gap-3 pt-2">
-            <Link
-              href="/add-book"
-              className="inline-flex items-center gap-2 px-5 py-2.5 bg-stone-900 hover:bg-stone-800 text-white rounded-xl text-xs sm:text-sm font-semibold transition shadow-xs cursor-pointer"
-            >
-              <Plus className="w-4 h-4" />
-              <span>Release a Book</span>
-            </Link>
+          {/* Process-Oriented Hero Buttons */}
+          <div className="space-y-3 pt-2">
+            <div className="flex flex-wrap items-center justify-center gap-3">
+              {user ? (
+                <Link
+                  href="/profile"
+                  className="inline-flex items-center gap-2 px-5 py-2.5 bg-stone-900 hover:bg-stone-800 text-white rounded-xl text-xs sm:text-sm font-semibold transition shadow-xs cursor-pointer"
+                >
+                  <Library className="w-4 h-4" />
+                  <span>My Catalog</span>
+                </Link>
+              ) : (
+                <Link
+                  href="/login"
+                  className="inline-flex items-center gap-2 px-5 py-2.5 bg-stone-900 hover:bg-stone-800 text-white rounded-xl text-xs sm:text-sm font-semibold transition shadow-xs cursor-pointer"
+                >
+                  <UserPlus className="w-4 h-4" />
+                  <span>Create an Account</span>
+                </Link>
+              )}
 
-            <a
-              href="#catalog-view"
-              className="inline-flex items-center gap-2 px-5 py-2.5 bg-white hover:bg-stone-50 text-stone-800 border border-stone-200 rounded-xl text-xs sm:text-sm font-semibold transition cursor-pointer shadow-2xs"
-            >
-              <BookOpen className="w-3.5 h-3.5 text-stone-600" />
-              <span>Catalog</span>
-            </a>
+              <Link
+                href="/add-book"
+                className="inline-flex items-center gap-2 px-5 py-2.5 bg-white hover:bg-stone-50 text-stone-800 border border-stone-200 rounded-xl text-xs sm:text-sm font-semibold transition cursor-pointer shadow-2xs"
+              >
+                <Plus className="w-4 h-4 text-stone-600" />
+                <span>Release a Book</span>
+              </Link>
 
-            <a
-              href="#how-it-works"
-              className="inline-flex items-center gap-2 px-4 py-2.5 bg-stone-100 hover:bg-stone-200 text-stone-600 rounded-xl text-xs sm:text-sm font-medium transition cursor-pointer"
-            >
-              <span>How It Works</span>
-              <ArrowRight className="w-3.5 h-3.5 text-stone-400" />
-            </a>
+              <a
+                href="#how-it-works"
+                className="inline-flex items-center gap-2 px-4 py-2.5 bg-stone-100 hover:bg-stone-200 text-stone-600 rounded-xl text-xs sm:text-sm font-medium transition cursor-pointer"
+              >
+                <span>How It Works</span>
+                <ArrowRight className="w-3.5 h-3.5 text-stone-400" />
+              </a>
+            </div>
+
+            {!user && (
+              <p className="text-xs text-stone-500">
+                Already have an account?{' '}
+                <Link href="/login" className="font-semibold text-stone-800 underline hover:text-amber-800 transition">
+                  Sign in here
+                </Link>
+              </p>
+            )}
           </div>
         </div>
       </section>
@@ -293,6 +363,26 @@ export default function CatalogPage() {
                 </p>
               </div>
             </div>
+          </div>
+
+          {/* Account Perk Reminder */}
+          <div className="bg-white border border-stone-200 rounded-xl p-4 flex flex-col sm:flex-row items-center justify-between gap-3 text-center sm:text-left">
+            <div className="space-y-0.5">
+              <p className="text-xs font-semibold text-stone-900">
+                Want to keep a personal reading passport?
+              </p>
+              <p className="text-xs text-stone-500">
+                No account is required to log a stop, but creating a free profile lets you track every book you've read or released.
+              </p>
+            </div>
+            {!user && (
+              <Link
+                href="/login"
+                className="px-4 py-2 bg-stone-900 hover:bg-stone-800 text-white rounded-lg text-xs font-semibold whitespace-nowrap transition"
+              >
+                Create Free Account
+              </Link>
+            )}
           </div>
         </div>
       </section>
