@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
 import { supabase } from '../../../lib/supabase';
+import { getBookSynopsis } from '../../../lib/bookSynopsis';
 import { 
   ArrowLeft, 
   BookOpen, 
@@ -19,6 +20,7 @@ export default function BookDetailPage() {
   const bookIdParam = params?.id;
 
   const [book, setBook] = useState(null);
+  const [synopsis, setSynopsis] = useState(null);
   const [stops, setStops] = useState([]);
   const [loading, setLoading] = useState(true);
   const [errorMsg, setErrorMsg] = useState('');
@@ -100,6 +102,15 @@ export default function BookDetailPage() {
         }
 
         setBook(bookData);
+
+        // Fetch synopsis (use saved value if present, otherwise look up by ISBN)
+        if (bookData.synopsis) {
+          setSynopsis(bookData.synopsis);
+        } else if (bookData.isbn) {
+          getBookSynopsis(bookData.isbn).then((text) => {
+            if (text) setSynopsis(text);
+          });
+        }
 
         // 2. Fetch journey stops safely with created_at fallback
         try {
@@ -328,6 +339,16 @@ export default function BookDetailPage() {
           <span className="text-[9px] text-stone-400">Scan to share</span>
         </div>
       </div>
+
+      {/* Book Synopsis */}
+      {synopsis && (
+        <div className="bg-white border border-stone-200 rounded-2xl p-6 shadow-xs space-y-2">
+          <h2 className="font-serif font-bold text-base text-stone-900">About This Book</h2>
+          <p className="text-xs sm:text-sm leading-relaxed text-stone-600">
+            {synopsis}
+          </p>
+        </div>
+      )}
 
       {/* Journey Stops Feed */}
       <div className="space-y-4">
