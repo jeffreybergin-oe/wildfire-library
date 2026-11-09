@@ -67,11 +67,13 @@ export default function MyCatalogPage() {
 
         const releasedBooks = releasedBooksData || [];
 
-        // 3. Fetch Journey Stops Logged by This User
-        const { data: userStopsData } = await supabase
-          .from('journey_stops')
-          .select('*')
-          .eq('user_id', currentUser.id);
+        // 3. Fetch Journey Stops Logged by This User (matched by reader_email)
+        const { data: userStopsData } = currentUser.email
+          ? await supabase
+              .from('journey_stops')
+              .select('*')
+              .ilike('reader_email', currentUser.email)
+          : { data: [] };
 
         const userStops = userStopsData || [];
 
