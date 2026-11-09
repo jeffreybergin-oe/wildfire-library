@@ -186,7 +186,7 @@ export default function CatalogPage() {
             <div className="flex flex-wrap items-center justify-center gap-3">
               {user ? (
                 <Link
-                  href="/profile"
+                  href="/my-catalog"
                   className="inline-flex items-center gap-2 px-5 py-2.5 bg-stone-900 hover:bg-stone-800 text-white rounded-xl text-xs sm:text-sm font-semibold transition shadow-xs cursor-pointer"
                 >
                   <Library className="w-4 h-4" />
@@ -327,7 +327,7 @@ export default function CatalogPage() {
               <div className="space-y-1">
                 <h3 className="font-serif font-bold text-sm text-stone-900">Find & Scan</h3>
                 <p className="text-stone-600 text-xs leading-relaxed">
-                  Spot a book in a café, park bench, or little free library. Scan the 3" bookplate QR code to see its backstory.
+                  Spot a book in a café, park bench, or little free library. Scan the 3&quot; bookplate QR code to see its backstory.
                 </p>
               </div>
             </div>
@@ -343,7 +343,7 @@ export default function CatalogPage() {
               <div className="space-y-1">
                 <h3 className="font-serif font-bold text-sm text-stone-900">Confirm Pickup</h3>
                 <p className="text-stone-600 text-xs leading-relaxed">
-                  Tap "Just Picked Up" to let previous readers know the copy is in good hands. Take your time enjoying the read.
+                  Tap &quot;Just Picked Up&quot; to let previous readers know the copy is in good hands. Take your time enjoying the read.
                 </p>
               </div>
             </div>
@@ -372,7 +372,7 @@ export default function CatalogPage() {
                 Want to keep a personal reading passport?
               </p>
               <p className="text-xs text-stone-500">
-                No account is required to log a stop, but creating a free profile lets you track every book you've read or released.
+                No account is required to log a stop, but creating a free profile lets you track every book you&apos;ve read or released.
               </p>
             </div>
             {!user && (
