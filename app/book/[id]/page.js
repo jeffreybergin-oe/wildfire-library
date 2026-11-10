@@ -357,6 +357,8 @@ export default function BookDetailPage() {
   const qrCodeApiUrl = `https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=${encodeURIComponent(qrTargetUrl)}&margin=0`;
 
   const isJustPickedUp = newStop.status_event === 'Just Picked Up Book';
+  const isReadyForNext = book.status === 'Ready for Next Reader';
+  const hasMappedStops = stops.some((s) => typeof s.lat === 'number' && typeof s.lng === 'number');
 
   // Quick Stats Calculations
   const uniqueLocations = new Set(
@@ -382,7 +384,7 @@ export default function BookDetailPage() {
           <button
             type="button"
             onClick={() => window.print()}
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white border border-stone-200 hover:bg-stone-50 text-stone-700 rounded-lg text-xs font-medium transition cursor-pointer"
+            className="hidden sm:inline-flex items-center gap-1.5 px-3 py-1.5 bg-white border border-stone-200 hover:bg-stone-50 text-stone-700 rounded-lg text-xs font-medium transition cursor-pointer"
           >
             <Printer className="w-3.5 h-3.5 text-stone-500" />
             <span>Print Bookplate</span>
@@ -393,7 +395,11 @@ export default function BookDetailPage() {
               setRequestSuccess(false);
               setShowRequestModal(true);
             }}
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-amber-600 hover:bg-amber-700 text-white rounded-lg text-xs font-semibold transition cursor-pointer"
+            className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition cursor-pointer ${
+              isReadyForNext
+                ? 'bg-amber-600 hover:bg-amber-700 text-white'
+                : 'bg-white border border-stone-200 hover:bg-stone-50 text-stone-700'
+            }`}
           >
             <Send className="w-3.5 h-3.5" />
             <span>Request Book</span>
@@ -401,7 +407,11 @@ export default function BookDetailPage() {
           <button
             type="button"
             onClick={() => setShowLogModal(true)}
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-stone-900 hover:bg-stone-800 text-white rounded-lg text-xs font-semibold transition cursor-pointer"
+            className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition cursor-pointer ${
+              isReadyForNext
+                ? 'bg-white border border-stone-200 hover:bg-stone-50 text-stone-700'
+                : 'bg-stone-900 hover:bg-stone-800 text-white'
+            }`}
           >
             <PlusCircle className="w-3.5 h-3.5" />
             <span>Log Reading Stop</span>
@@ -457,8 +467,8 @@ export default function BookDetailPage() {
           </div>
         </div>
 
-        {/* On-Screen QR Code Box */}
-        <div className="bg-stone-50 border border-stone-200 rounded-xl p-3 flex flex-col items-center justify-center text-center shrink-0 self-center md:self-start">
+        {/* On-Screen QR Code Box (Desktop only) */}
+        <div className="hidden md:flex bg-stone-50 border border-stone-200 rounded-xl p-3 flex-col items-center justify-center text-center shrink-0 self-start">
           <div className="bg-white p-2 rounded-lg border border-stone-200 shadow-2xs">
             <img 
               src={qrCodeApiUrl} 
@@ -506,28 +516,33 @@ export default function BookDetailPage() {
           </span>
         </div>
 
-        {/* Quick Stats Bar */}
+        {/* Quick Stats + Mini Journey Map */}
         {stops.length > 0 && (
-          <div className="grid grid-cols-3 gap-3">
-            <div className="bg-white border border-stone-200 rounded-xl p-3 text-center shadow-2xs">
-              <p className="text-lg font-bold font-mono text-stone-900">{stops.length}</p>
-              <p className="text-[11px] text-stone-500">Total Stops</p>
+          <div className={`grid grid-cols-1 gap-4 ${hasMappedStops ? 'md:grid-cols-3' : ''}`}>
+            <div className={`grid gap-3 ${hasMappedStops ? 'grid-cols-3 md:grid-cols-1' : 'grid-cols-3'}`}>
+              <div className="bg-white border border-stone-200 rounded-xl p-3 text-center shadow-2xs flex flex-col justify-center">
+                <p className="text-lg font-bold font-mono text-stone-900">{stops.length}</p>
+                <p className="text-[11px] text-stone-500">Total Stops</p>
+              </div>
+              <div className="bg-white border border-stone-200 rounded-xl p-3 text-center shadow-2xs flex flex-col justify-center">
+                <p className="text-lg font-bold font-mono text-stone-900">{uniqueLocations.size}</p>
+                <p className="text-[11px] text-stone-500">Places Visited</p>
+              </div>
+              <div className="bg-white border border-stone-200 rounded-xl p-3 text-center shadow-2xs flex flex-col justify-center">
+                <p className="text-lg font-bold font-mono text-stone-900">
+                  {avgRating ? `${avgRating} ★` : '—'}
+                </p>
+                <p className="text-[11px] text-stone-500">Avg Rating</p>
+              </div>
             </div>
-            <div className="bg-white border border-stone-200 rounded-xl p-3 text-center shadow-2xs">
-              <p className="text-lg font-bold font-mono text-stone-900">{uniqueLocations.size}</p>
-              <p className="text-[11px] text-stone-500">Places Visited</p>
-            </div>
-            <div className="bg-white border border-stone-200 rounded-xl p-3 text-center shadow-2xs">
-              <p className="text-lg font-bold font-mono text-stone-900">
-                {avgRating ? `${avgRating} ★` : '—'}
-              </p>
-              <p className="text-[11px] text-stone-500">Avg Rating</p>
-            </div>
+
+            {hasMappedStops && (
+              <div className="md:col-span-2">
+                <JourneyMap stops={stops} />
+              </div>
+            )}
           </div>
         )}
-
-        {/* Mini Journey Map */}
-        <JourneyMap stops={stops} />
 
         {stops.length === 0 ? (
           <div className="bg-white border border-dashed border-stone-300 rounded-xl p-8 text-center text-stone-500 text-xs">
@@ -595,7 +610,7 @@ export default function BookDetailPage() {
       {/* Request Book Modal */}
       {showRequestModal && (
         <div className="fixed inset-0 z-50 bg-stone-900/40 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="bg-white border border-stone-200 rounded-2xl p-6 max-w-md w-full space-y-4 shadow-xl">
+          <div className="bg-white border border-stone-200 rounded-2xl p-6 max-w-md w-full max-h-[90vh] overflow-y-auto space-y-4 shadow-xl">
             <div className="flex items-center justify-between pb-2 border-b border-stone-100">
               <h3 className="font-serif font-bold text-base text-stone-900">Request This Book</h3>
               <button
@@ -688,7 +703,7 @@ export default function BookDetailPage() {
       {/* Log Modal */}
       {showLogModal && (
         <div className="fixed inset-0 z-50 bg-stone-900/40 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="bg-white border border-stone-200 rounded-2xl p-6 max-w-md w-full space-y-4 shadow-xl">
+          <div className="bg-white border border-stone-200 rounded-2xl p-6 max-w-md w-full max-h-[90vh] overflow-y-auto space-y-4 shadow-xl">
             <div className="flex items-center justify-between pb-2 border-b border-stone-100">
               <h3 className="font-serif font-bold text-base text-stone-900">Log Reading Stop</h3>
               <button
@@ -739,6 +754,24 @@ export default function BookDetailPage() {
                 </select>
               </div>
 
+              {/* Location (Always visible so pickups also appear on the map) */}
+              <div>
+                <label className="block font-medium text-stone-700 mb-1">
+                  {isJustPickedUp
+                    ? 'Where did you find it? (City or Spot)'
+                    : newStop.status_event === 'Ready to Pass Along'
+                    ? 'Drop-off Spot / Next Location'
+                    : 'Where are you reading it? (optional)'}
+                </label>
+                <input
+                  type="text"
+                  placeholder="e.g. Syracuse, NY or Elm St Little Free Library"
+                  value={newStop.location}
+                  onChange={(e) => setNewStop({ ...newStop, location: e.target.value })}
+                  className="w-full px-3 py-2 bg-stone-50 border border-stone-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-amber-500 text-stone-900"
+                />
+              </div>
+
               {/* Conditional Fields: Hidden if "Just Picked Up Book" */}
               {!isJustPickedUp && (
                 <>
@@ -755,19 +788,6 @@ export default function BookDetailPage() {
                       <option value="2">★★☆☆☆ (2/5)</option>
                       <option value="1">★☆☆☆☆ (1/5)</option>
                     </select>
-                  </div>
-
-                  <div>
-                    <label className="block font-medium text-stone-700 mb-1">
-                      {newStop.status_event === 'Ready to Pass Along' ? 'Drop-off Spot / Next Location' : 'Where are you reading it? (optional)'}
-                    </label>
-                    <input
-                      type="text"
-                      placeholder="e.g. Elm St Little Free Library or Coffee Shop bench"
-                      value={newStop.location}
-                      onChange={(e) => setNewStop({ ...newStop, location: e.target.value })}
-                      className="w-full px-3 py-2 bg-stone-50 border border-stone-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-amber-500 text-stone-900"
-                    />
                   </div>
 
                   <div>
