@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
+import dynamic from 'next/dynamic';
 import { useParams } from 'next/navigation';
 import { supabase } from '../../../lib/supabase';
 import { getBookSynopsis } from '../../../lib/bookSynopsis';
@@ -17,6 +18,10 @@ import {
   ChevronUp,
   Send
 } from 'lucide-react';
+
+const JourneyMap = dynamic(() => import('../../../components/JourneyMap'), {
+  ssr: false,
+});
 
 export default function BookDetailPage() {
   const params = useParams();
@@ -176,12 +181,34 @@ export default function BookDetailPage() {
       const activeBookId = book.id || book.book_id;
       const isJustPickedUp = newStop.status_event === 'Just Picked Up Book';
 
+      // Geocode location text via OpenStreetMap Nominatim (free, no key needed)
+      let lat = null;
+      let lng = null;
+      if (newStop.location.trim()) {
+        try {
+          const geoRes = await fetch(
+            `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(
+              newStop.location.trim()
+            )}&limit=1`
+          );
+          const geoData = await geoRes.json();
+          if (geoData && geoData.length > 0) {
+            lat = parseFloat(geoData[0].lat);
+            lng = parseFloat(geoData[0].lon);
+          }
+        } catch (geoErr) {
+          console.warn('Geocoding skipped:', geoErr);
+        }
+      }
+
       const basePayload = {
         book_id: activeBookId,
         reader_name: newStop.reader_name.trim() || 'Anonymous Reader',
         reader_email: newStop.reader_email.trim().toLowerCase() || null,
         status_event: newStop.status_event,
         location: newStop.location.trim() || null,
+        lat,
+        lng,
         takeaway: isJustPickedUp ? null : newStop.takeaway.trim() || null,
         rating: isJustPickedUp ? null : Number(newStop.rating),
       };
@@ -499,6 +526,9 @@ export default function BookDetailPage() {
           </div>
         )}
 
+        {/* Mini Journey Map */}
+        <JourneyMap stops={stops} />
+
         {stops.length === 0 ? (
           <div className="bg-white border border-dashed border-stone-300 rounded-xl p-8 text-center text-stone-500 text-xs">
             No journey stops logged yet. Scan the bookplate QR code to record the first stop!
@@ -811,4 +841,4 @@ export default function BookDetailPage() {
       </div>
     </div>
   );
-}'
+}
