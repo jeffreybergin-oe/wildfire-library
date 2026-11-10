@@ -12,7 +12,10 @@ import {
   Printer, 
   Loader2, 
   PlusCircle, 
-  Calendar 
+  Calendar,
+  ChevronDown,
+  ChevronUp,
+  Send
 } from 'lucide-react';
 
 export default function BookDetailPage() {
@@ -21,6 +24,7 @@ export default function BookDetailPage() {
 
   const [book, setBook] = useState(null);
   const [synopsis, setSynopsis] = useState(null);
+  const [showSynopsis, setShowSynopsis] = useState(false);
   const [stops, setStops] = useState([]);
   const [loading, setLoading] = useState(true);
   const [errorMsg, setErrorMsg] = useState('');
@@ -28,7 +32,7 @@ export default function BookDetailPage() {
   // User state
   const [currentUser, setCurrentUser] = useState(null);
 
-  // Modal & Form State
+  // Log Stop Modal & Form State
   const [showLogModal, setShowLogModal] = useState(false);
   const [submittingStop, setSubmittingStop] = useState(false);
   const [newStop, setNewStop] = useState({
@@ -38,6 +42,17 @@ export default function BookDetailPage() {
     location: '',
     takeaway: '',
     rating: 5,
+    followBook: true,
+  });
+
+  // Request Book Modal & Form State
+  const [showRequestModal, setShowRequestModal] = useState(false);
+  const [submittingRequest, setSubmittingRequest] = useState(false);
+  const [requestSuccess, setRequestSuccess] = useState(false);
+  const [requestForm, setRequestForm] = useState({
+    requester_name: '',
+    requester_email: '',
+    message: '',
   });
 
   // Check auth and auto-populate user info
@@ -60,6 +75,11 @@ export default function BookDetailPage() {
             ...prev,
             reader_name: userName,
             reader_email: userEmail,
+          }));
+          setRequestForm((prev) => ({
+            ...prev,
+            requester_name: userName,
+            requester_email: userEmail,
           }));
         }
       } catch (err) {
@@ -206,6 +226,34 @@ export default function BookDetailPage() {
       }
 
       setStops((prev) => [insertedRecord, ...prev]);
+
+      // Save follower if they opted in with an email
+      if (newStop.followBook && newStop.reader_email.trim()) {
+        await supabase
+          .from('book_followers')
+          .upsert(
+            {
+              book_id: activeBookId,
+              email: newStop.reader_email.trim().toLowerCase(),
+            },
+            { onConflict: 'book_id,email' }
+          );
+      }
+
+      // Notify existing followers in the background
+      fetch('/api/notify-followers', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          book_id: activeBookId,
+          book_title: book.title,
+          status_event: newStop.status_event,
+          location: newStop.location.trim(),
+          reader_name: newStop.reader_name.trim() || 'A reader',
+          reader_email: newStop.reader_email.trim().toLowerCase(),
+        }),
+      }).catch((err) => console.error('Follower notification error:', err));
+
       setShowLogModal(false);
       setNewStop((prev) => ({
         ...prev,
@@ -213,12 +261,45 @@ export default function BookDetailPage() {
         location: '',
         takeaway: '',
         rating: 5,
+        followBook: true,
       }));
     } catch (err) {
       console.error('Error logging journey stop:', err);
       alert(err.message || 'Error recording stop.');
     } finally {
       setSubmittingStop(false);
+    }
+  };
+
+  const handleRequestBook = async (e) => {
+    e.preventDefault();
+    setSubmittingRequest(true);
+
+    try {
+      const res = await fetch('/api/request-book', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          book_id: book.id || book.book_id,
+          book_title: book.title,
+          requester_name: requestForm.requester_name.trim(),
+          requester_email: requestForm.requester_email.trim().toLowerCase(),
+          message: requestForm.message.trim(),
+        }),
+      });
+
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.error || 'Could not send book request.');
+      }
+
+      setRequestSuccess(true);
+      setRequestForm((prev) => ({ ...prev, message: '' }));
+    } catch (err) {
+      console.error('Error requesting book:', err);
+      alert(err.message || 'Failed to send request.');
+    } finally {
+      setSubmittingRequest(false);
     }
   };
 
@@ -250,15 +331,27 @@ export default function BookDetailPage() {
 
   const isJustPickedUp = newStop.status_event === 'Just Picked Up Book';
 
+  // Quick Stats Calculations
+  const uniqueLocations = new Set(
+    stops
+      .map((s) => s.location?.trim().toLowerCase())
+      .filter(Boolean)
+  );
+  const ratedStops = stops.filter((s) => typeof s.rating === 'number' && s.rating > 0);
+  const avgRating =
+    ratedStops.length > 0
+      ? (ratedStops.reduce((sum, s) => sum + s.rating, 0) / ratedStops.length).toFixed(1)
+      : null;
+
   return (
     <div className="max-w-4xl mx-auto px-4 py-8 space-y-8">
       {/* Top Bar */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-wrap items-center justify-between gap-3">
         <Link href="/" className="inline-flex items-center gap-1.5 text-xs text-stone-500 hover:text-stone-900 transition">
           <ArrowLeft className="w-3.5 h-3.5" />
           <span>Catalog</span>
         </Link>
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           <button
             type="button"
             onClick={() => window.print()}
@@ -266,6 +359,17 @@ export default function BookDetailPage() {
           >
             <Printer className="w-3.5 h-3.5 text-stone-500" />
             <span>Print Bookplate</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              setRequestSuccess(false);
+              setShowRequestModal(true);
+            }}
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-amber-600 hover:bg-amber-700 text-white rounded-lg text-xs font-semibold transition cursor-pointer"
+          >
+            <Send className="w-3.5 h-3.5" />
+            <span>Request Book</span>
           </button>
           <button
             type="button"
@@ -340,13 +444,26 @@ export default function BookDetailPage() {
         </div>
       </div>
 
-      {/* Book Synopsis */}
+      {/* Collapsible Book Synopsis */}
       {synopsis && (
-        <div className="bg-white border border-stone-200 rounded-2xl p-6 shadow-xs space-y-2">
-          <h2 className="font-serif font-bold text-base text-stone-900">About This Book</h2>
-          <p className="text-xs sm:text-sm leading-relaxed text-stone-600">
-            {synopsis}
-          </p>
+        <div className="bg-white border border-stone-200 rounded-2xl p-5 shadow-xs">
+          <button
+            type="button"
+            onClick={() => setShowSynopsis(!showSynopsis)}
+            className="w-full flex items-center justify-between text-left cursor-pointer"
+          >
+            <h2 className="font-serif font-bold text-base text-stone-900">About This Book</h2>
+            {showSynopsis ? (
+              <ChevronUp className="w-4 h-4 text-stone-400" />
+            ) : (
+              <ChevronDown className="w-4 h-4 text-stone-400" />
+            )}
+          </button>
+          {showSynopsis && (
+            <p className="mt-3 pt-3 border-t border-stone-100 text-xs sm:text-sm leading-relaxed text-stone-600">
+              {synopsis}
+            </p>
+          )}
         </div>
       )}
 
@@ -361,54 +478,182 @@ export default function BookDetailPage() {
             {stops.length} {stops.length === 1 ? 'stop' : 'stops'}
           </span>
         </div>
+
+        {/* Quick Stats Bar */}
+        {stops.length > 0 && (
+          <div className="grid grid-cols-3 gap-3">
+            <div className="bg-white border border-stone-200 rounded-xl p-3 text-center shadow-2xs">
+              <p className="text-lg font-bold font-mono text-stone-900">{stops.length}</p>
+              <p className="text-[11px] text-stone-500">Total Stops</p>
+            </div>
+            <div className="bg-white border border-stone-200 rounded-xl p-3 text-center shadow-2xs">
+              <p className="text-lg font-bold font-mono text-stone-900">{uniqueLocations.size}</p>
+              <p className="text-[11px] text-stone-500">Places Visited</p>
+            </div>
+            <div className="bg-white border border-stone-200 rounded-xl p-3 text-center shadow-2xs">
+              <p className="text-lg font-bold font-mono text-stone-900">
+                {avgRating ? `${avgRating} ★` : '—'}
+              </p>
+              <p className="text-[11px] text-stone-500">Avg Rating</p>
+            </div>
+          </div>
+        )}
+
         {stops.length === 0 ? (
           <div className="bg-white border border-dashed border-stone-300 rounded-xl p-8 text-center text-stone-500 text-xs">
             No journey stops logged yet. Scan the bookplate QR code to record the first stop!
           </div>
         ) : (
-          <div className="space-y-3">
+          /* Visual Timeline */
+          <div className="relative pl-6 ml-2 border-l-2 border-stone-200 space-y-4">
             {stops.map((stop, idx) => {
               const dateDisplay = stop.created_at || stop.date 
                 ? new Date(stop.created_at || stop.date).toLocaleDateString()
                 : null;
 
+              const dotColor =
+                stop.status_event === 'Ready to Pass Along'
+                  ? 'bg-emerald-500'
+                  : stop.status_event === 'Just Picked Up Book'
+                  ? 'bg-amber-500'
+                  : 'bg-stone-500';
+
               return (
-                <div key={stop.id || idx} className="bg-white border border-stone-200 rounded-xl p-4 shadow-2xs space-y-2 text-xs">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <span className="font-semibold text-stone-900">{stop.reader_name || 'Anonymous Reader'}</span>
-                      <span className="text-[10px] bg-stone-100 text-stone-600 px-1.5 py-0.5 rounded font-mono">
-                        {stop.status_event}
-                      </span>
+                <div key={stop.id || idx} className="relative">
+                  {/* Timeline Dot */}
+                  <span
+                    className={`absolute -left-[31px] top-4 w-3 h-3 rounded-full border-2 border-white shadow-xs ${dotColor}`}
+                  />
+                  <div className="bg-white border border-stone-200 rounded-xl p-4 shadow-2xs space-y-2 text-xs">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <span className="font-semibold text-stone-900">{stop.reader_name || 'Anonymous Reader'}</span>
+                        <span className="text-[10px] bg-stone-100 text-stone-600 px-1.5 py-0.5 rounded font-mono">
+                          {stop.status_event}
+                        </span>
+                      </div>
+                      {dateDisplay && (
+                        <span className="text-[11px] text-stone-400">
+                          {dateDisplay}
+                        </span>
+                      )}
                     </div>
-                    {dateDisplay && (
-                      <span className="text-[11px] text-stone-400">
-                        {dateDisplay}
-                      </span>
+                    {stop.rating && (
+                      <div className="text-amber-500 text-xs">
+                        {'★'.repeat(stop.rating)}{'☆'.repeat(5 - stop.rating)}
+                      </div>
+                    )}
+                    {stop.location && (
+                      <p className="text-stone-500 flex items-center gap-1 text-[11px]">
+                        <MapPin className="w-3 h-3 text-stone-400" />
+                        <span>{stop.location}</span>
+                      </p>
+                    )}
+                    {stop.takeaway && (
+                      <blockquote className="text-stone-700 italic bg-stone-50 border-l-2 border-amber-500 py-1.5 px-3 rounded-r-md text-[11px]">
+                        "{stop.takeaway}"
+                      </blockquote>
                     )}
                   </div>
-                  {stop.rating && (
-                    <div className="text-amber-500 text-xs">
-                      {'★'.repeat(stop.rating)}{'☆'.repeat(5 - stop.rating)}
-                    </div>
-                  )}
-                  {stop.location && (
-                    <p className="text-stone-500 flex items-center gap-1 text-[11px]">
-                      <MapPin className="w-3 h-3 text-stone-400" />
-                      <span>{stop.location}</span>
-                    </p>
-                  )}
-                  {stop.takeaway && (
-                    <blockquote className="text-stone-700 italic bg-stone-50 border-l-2 border-amber-500 py-1.5 px-3 rounded-r-md text-[11px]">
-                      "{stop.takeaway}"
-                    </blockquote>
-                  )}
                 </div>
               );
             })}
           </div>
         )}
       </div>
+
+      {/* Request Book Modal */}
+      {showRequestModal && (
+        <div className="fixed inset-0 z-50 bg-stone-900/40 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-white border border-stone-200 rounded-2xl p-6 max-w-md w-full space-y-4 shadow-xl">
+            <div className="flex items-center justify-between pb-2 border-b border-stone-100">
+              <h3 className="font-serif font-bold text-base text-stone-900">Request This Book</h3>
+              <button
+                type="button"
+                onClick={() => setShowRequestModal(false)}
+                className="text-stone-400 hover:text-stone-600 text-sm p-1 cursor-pointer"
+              >
+                ✕
+              </button>
+            </div>
+
+            {requestSuccess ? (
+              <div className="space-y-4 py-2 text-xs text-stone-600">
+                <p className="text-sm font-medium text-emerald-700">Request sent!</p>
+                <p>
+                  We&apos;ve emailed the current holder of <strong>{book.title}</strong> with your message. If they&apos;re ready to pass it along, they can reply directly to your email to coordinate the handoff.
+                </p>
+                <div className="flex justify-end">
+                  <button
+                    type="button"
+                    onClick={() => setShowRequestModal(false)}
+                    className="px-4 py-1.5 bg-stone-900 text-white rounded-lg text-xs font-semibold cursor-pointer"
+                  >
+                    Done
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <form onSubmit={handleRequestBook} className="space-y-3 text-xs">
+                <p className="text-stone-500">
+                  Send a note to the current reader of <strong>{book.title}</strong>. Your email is only shared with them so they can reply.
+                </p>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div>
+                    <label className="block font-medium text-stone-700 mb-1">Your Name</label>
+                    <input
+                      type="text"
+                      required
+                      placeholder="e.g. Alex"
+                      value={requestForm.requester_name}
+                      onChange={(e) => setRequestForm({ ...requestForm, requester_name: e.target.value })}
+                      className="w-full px-3 py-2 bg-stone-50 border border-stone-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-amber-500 text-stone-900"
+                    />
+                  </div>
+                  <div>
+                    <label className="block font-medium text-stone-700 mb-1">Your Email</label>
+                    <input
+                      type="email"
+                      required
+                      placeholder="name@example.com"
+                      value={requestForm.requester_email}
+                      onChange={(e) => setRequestForm({ ...requestForm, requester_email: e.target.value })}
+                      className="w-full px-3 py-2 bg-stone-50 border border-stone-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-amber-500 text-stone-900"
+                    />
+                  </div>
+                </div>
+                <div>
+                  <label className="block font-medium text-stone-700 mb-1">Message</label>
+                  <textarea
+                    rows="3"
+                    required
+                    placeholder="Where are you located, and how would you like to coordinate pickup or shipping?"
+                    value={requestForm.message}
+                    onChange={(e) => setRequestForm({ ...requestForm, message: e.target.value })}
+                    className="w-full px-3 py-2 bg-stone-50 border border-stone-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-amber-500 text-stone-900"
+                  />
+                </div>
+                <div className="flex items-center justify-end gap-2 pt-2">
+                  <button
+                    type="button"
+                    onClick={() => setShowRequestModal(false)}
+                    className="px-3 py-1.5 border border-stone-200 text-stone-600 rounded-lg text-xs hover:bg-stone-50 cursor-pointer"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={submittingRequest}
+                    className="px-4 py-1.5 bg-amber-600 hover:bg-amber-700 disabled:bg-stone-300 text-white rounded-lg text-xs font-semibold cursor-pointer shadow-xs"
+                  >
+                    {submittingRequest ? 'Sending...' : 'Send Request'}
+                  </button>
+                </div>
+              </form>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* Log Modal */}
       {showLogModal && (
@@ -510,6 +755,19 @@ export default function BookDetailPage() {
                 </>
               )}
 
+              {/* Follow This Book Checkbox */}
+              {newStop.reader_email.trim() && (
+                <label className="flex items-center gap-2 text-stone-600 cursor-pointer pt-1">
+                  <input
+                    type="checkbox"
+                    checked={newStop.followBook}
+                    onChange={(e) => setNewStop({ ...newStop, followBook: e.target.checked })}
+                    className="rounded border-stone-300 text-amber-600 focus:ring-amber-500"
+                  />
+                  <span>Email me when this book moves to its next stop</span>
+                </label>
+              )}
+
               <div className="flex items-center justify-end gap-2 pt-2">
                 <button
                   type="button"
@@ -553,4 +811,4 @@ export default function BookDetailPage() {
       </div>
     </div>
   );
-}
+}'
