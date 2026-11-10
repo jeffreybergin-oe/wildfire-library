@@ -236,7 +236,10 @@ export default function BookDetailPage() {
       }
 
       // Update book status badge depending on event
-      if (newStop.status_event === 'Ready to Pass Along') {
+      if (
+        newStop.status_event === 'Ready to Pass Along' ||
+        newStop.status_event === 'Finished Reading'
+      ) {
         await supabase
           .from('books')
           .update({ status: 'Ready for Next Reader' })
@@ -246,10 +249,10 @@ export default function BookDetailPage() {
       } else if (newStop.status_event === 'Just Picked Up Book') {
         await supabase
           .from('books')
-          .update({ status: 'Currently Reading' })
+          .update({ status: 'Currently Being Read' })
           .eq('id', book.id);
 
-        setBook((prev) => ({ ...prev, status: 'Currently Reading' }));
+        setBook((prev) => ({ ...prev, status: 'Currently Being Read' }));
       }
 
       setStops((prev) => [insertedRecord, ...prev]);
@@ -435,7 +438,7 @@ export default function BookDetailPage() {
               {displayId}
             </span>
             <span className="text-xs font-medium px-2.5 py-0.5 rounded-full bg-amber-100 text-amber-800">
-              {book.status || 'In the Wild'}
+              {book.status || 'Not Released'}
             </span>
             {book.genre && (
               <span className="text-xs text-stone-500 border border-stone-200 px-2 py-0.5 rounded-md">
@@ -843,36 +846,18 @@ export default function BookDetailPage() {
         </div>
       )}
 
-  {/* Printable Bookplate */}
+      {/* Printable Bookplate */}
       <div className="hidden print:block fixed inset-0 bg-white p-6">
         <div className="w-[3in] h-[3in] border-2 border-dashed border-stone-900 p-3 mx-auto flex flex-col justify-between items-center text-center">
-          {/* Header with Small Logo */}
-          <div className="flex items-center justify-center gap-1.5">
-            <img src="/logo.png" alt="Wildfire Library" className="w-5 h-5 object-contain" />
-            <div className="text-left">
-              <p className="font-serif font-bold text-xs leading-none text-stone-900">Wildfire Library</p>
-              <p className="text-[8px] uppercase tracking-widest text-stone-500">Books in the Wild</p>
-            </div>
-          </div>
-
-          {/* Book Title & Author */}
-          <div className="px-1">
-            <p className="font-serif font-bold text-[11px] leading-tight text-stone-900 line-clamp-2">
-              {book.title}
-            </p>
-            <p className="text-[9px] text-stone-600 truncate">
-              by {book.author}
-            </p>
-          </div>
-
-          {/* QR Code */}
-          <div>
-            <img src={qrCodeApiUrl} alt="Scan QR" className="w-20 h-20 mx-auto" />
-          </div>
-
-          {/* Book ID & Instructions */}
           <div className="space-y-0.5">
-            <p className="font-mono font-bold text-[11px] text-stone-900">{displayId}</p>
+            <p className="font-serif font-bold text-sm text-stone-900">Wildfire Library</p>
+            <p className="text-[9px] uppercase tracking-widest text-stone-500">Books in the Wild</p>
+          </div>
+          <div className="my-1">
+            <img src={qrCodeApiUrl} alt="Scan QR" className="w-24 h-24 mx-auto" />
+          </div>
+          <div className="space-y-0.5">
+            <p className="font-mono font-bold text-xs text-stone-900">{displayId}</p>
             <p className="text-[8px] text-stone-600">Scan to read journey &amp; log where you pass it</p>
           </div>
         </div>
