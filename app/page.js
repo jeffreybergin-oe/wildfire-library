@@ -11,14 +11,14 @@ import {
   Sparkles, 
   Compass, 
   Users, 
-  UserCheck,
-  UserPlus,
-  Library,
-  AlertCircle,
-  Loader2,
-  ArrowRight,
-  QrCode,
-  BookOpenCheck,
+  UserCheck, 
+  UserPlus, 
+  Library, 
+  AlertCircle, 
+  Loader2, 
+  ArrowRight, 
+  QrCode, 
+  BookOpenCheck, 
   Send
 } from 'lucide-react';
 
@@ -27,6 +27,7 @@ export default function CatalogPage() {
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('All');
+  const [selectedGenre, setSelectedGenre] = useState('All');
 
   // Auth & Profile State
   const [user, setUser] = useState(null);
@@ -127,7 +128,10 @@ export default function CatalogPage() {
     fetchCatalogAndMetrics();
   }, []);
 
-  // Filter books by search and status
+  // Build unique genre list for dropdown
+  const genres = ['All', ...new Set(books.map((b) => b.genre).filter(Boolean))];
+
+  // Filter books by search, status, and genre
   const filteredBooks = books.filter((book) => {
     const matchesSearch = 
       book.title?.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -138,7 +142,10 @@ export default function CatalogPage() {
     const matchesStatus = 
       statusFilter === 'All' || book.status === statusFilter;
 
-    return matchesSearch && matchesStatus;
+    const matchesGenre = 
+      selectedGenre === 'All' || book.genre === selectedGenre;
+
+    return matchesSearch && matchesStatus && matchesGenre;
   });
 
   return (
@@ -401,8 +408,8 @@ export default function CatalogPage() {
         </div>
 
         {/* Controls Bar */}
-        <div className="flex flex-col sm:flex-row gap-3 items-center justify-between pb-2">
-          <div className="relative w-full sm:w-80">
+        <div className="flex flex-col md:flex-row gap-3 items-stretch md:items-center justify-between pb-2">
+          <div className="relative w-full md:w-72">
             <Search className="w-4 h-4 text-stone-400 absolute left-3 top-1/2 -translate-y-1/2" />
             <input
               type="text"
@@ -413,21 +420,35 @@ export default function CatalogPage() {
             />
           </div>
 
-          <div className="flex items-center gap-1.5 w-full sm:w-auto overflow-x-auto pb-1 sm:pb-0">
-            {['All', 'Ready for Next Reader', 'Currently Reading'].map((status) => (
-              <button
-                key={status}
-                type="button"
-                onClick={() => setStatusFilter(status)}
-                className={`px-3 py-1.5 rounded-lg text-xs font-medium whitespace-nowrap transition cursor-pointer ${
-                  statusFilter === status
-                    ? 'bg-stone-900 text-white'
-                    : 'bg-stone-100 text-stone-600 hover:bg-stone-200'
-                }`}
-              >
-                {status}
-              </button>
-            ))}
+          <div className="flex flex-wrap items-center gap-2">
+            <div className="flex items-center gap-1.5 overflow-x-auto pb-1 sm:pb-0">
+              {['All', 'Ready for Next Reader', 'Currently Reading'].map((status) => (
+                <button
+                  key={status}
+                  type="button"
+                  onClick={() => setStatusFilter(status)}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-medium whitespace-nowrap transition cursor-pointer ${
+                    statusFilter === status
+                      ? 'bg-stone-900 text-white'
+                      : 'bg-stone-100 text-stone-600 hover:bg-stone-200'
+                  }`}
+                >
+                  {status}
+                </button>
+              ))}
+            </div>
+
+            <select
+              value={selectedGenre}
+              onChange={(e) => setSelectedGenre(e.target.value)}
+              className="px-3 py-1.5 bg-white border border-stone-200 rounded-lg text-xs font-medium text-stone-700 focus:outline-none focus:ring-1 focus:ring-amber-500 cursor-pointer"
+            >
+              {genres.map((genre) => (
+                <option key={genre} value={genre}>
+                  {genre === 'All' ? 'All Genres' : genre}
+                </option>
+              ))}
+            </select>
           </div>
         </div>
 
