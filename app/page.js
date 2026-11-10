@@ -108,7 +108,7 @@ export default function CatalogPage() {
         );
 
         const activeReadersCount = booksList.filter(
-          (b) => b.status === 'Currently Reading'
+          (b) => b.status === 'Currently Being Read'
         ).length;
 
         setMetrics({
@@ -317,7 +317,7 @@ export default function CatalogPage() {
       <section id="how-it-works" className="max-w-5xl mx-auto px-4 pt-2">
         <div className="bg-stone-50/70 border border-stone-200/80 rounded-2xl p-6 sm:p-8 space-y-6">
           <div className="text-center max-w-lg mx-auto space-y-1">
-            <span className="text-[11px] font-mono font-bold tracking-widest uppercase text-amber-700">Simple & Free</span>
+            <span className="text-[11px] font-mono font-bold tracking-widest uppercase text-amber-700">Simple &amp; Free</span>
             <h2 className="font-serif font-bold text-xl sm:text-2xl text-stone-900">How the Journey Works</h2>
             <p className="text-stone-500 text-xs sm:text-sm">No due dates, library cards, or fees—just books traveling hand to hand.</p>
           </div>
@@ -332,7 +332,7 @@ export default function CatalogPage() {
                 <span className="font-mono text-xs font-bold text-stone-300">01</span>
               </div>
               <div className="space-y-1">
-                <h3 className="font-serif font-bold text-sm text-stone-900">Find & Scan</h3>
+                <h3 className="font-serif font-bold text-sm text-stone-900">Find &amp; Scan</h3>
                 <p className="text-stone-600 text-xs leading-relaxed">
                   Spot a book in a café, park bench, or little free library. Scan the 3&quot; bookplate QR code to see its backstory.
                 </p>
@@ -422,7 +422,7 @@ export default function CatalogPage() {
 
           <div className="flex flex-wrap items-center gap-2">
             <div className="flex items-center gap-1.5 overflow-x-auto pb-1 sm:pb-0">
-              {['All', 'Ready for Next Reader', 'Currently Reading'].map((status) => (
+              {['All', 'Ready for Next Reader', 'Currently Being Read', 'Not Released'].map((status) => (
                 <button
                   key={status}
                   type="button"
@@ -503,7 +503,7 @@ export default function CatalogPage() {
 
                     <div className="pt-2 border-t border-stone-100 flex items-center justify-between text-[10px]">
                       <span className="font-medium text-amber-800 bg-amber-50 px-2 py-0.5 rounded-full">
-                        {book.status || 'In the Wild'}
+                        {book.status || 'Not Released'}
                       </span>
                       {book.release_location && (
                         <span className="text-stone-400 truncate max-w-[90px] flex items-center gap-0.5">
