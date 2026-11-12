@@ -8,7 +8,6 @@ import {
   MapPin, 
   Search, 
   Plus, 
-  Sparkles, 
   Compass, 
   Users, 
   UserCheck, 
@@ -183,26 +182,21 @@ export default function CatalogPage() {
         </div>
       )}
 
-      {/* Rich Dark Warm Hero Section */}
-      <section className="relative overflow-hidden bg-stone-900 text-stone-50 border-b border-stone-800 pt-8 pb-12 sm:py-16 px-4">
-        <div className="max-w-4xl mx-auto text-center space-y-4 sm:space-y-5">
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-amber-500/15 text-amber-300 text-xs sm:text-sm font-semibold tracking-wide border border-amber-400/30">
-            <Sparkles className="w-3.5 h-3.5 text-amber-400" />
-            <span>A Free, Roaming Community Library</span>
-          </div>
-
+      {/* Tightened Dark Warm Hero Section */}
+      <section className="relative overflow-hidden bg-stone-900 text-stone-50 border-b border-stone-800 pt-8 pb-12 sm:pt-11 sm:pb-16 px-4">
+        <div className="max-w-4xl mx-auto text-center space-y-3.5 sm:space-y-4">
           <h1 className="font-serif font-bold text-3xl sm:text-5xl text-white tracking-tight leading-tight">
             Books meant to wander, <br className="hidden sm:inline" />
             not sit on shelves.
           </h1>
 
           <p className="max-w-xl mx-auto text-stone-300 text-base sm:text-lg leading-relaxed">
-            Every book in the Wildfire Library carries a unique passport. 
-            Scan the plate, see where it has traveled, and pass it along into the wild for the next reader.
+            A free, roaming community library where every book carries a unique passport. 
+            Scan the plate, see where it has traveled, and pass it along for the next reader.
           </p>
 
           {/* Process-Oriented Hero Buttons */}
-          <div className="space-y-2.5 pt-1">
+          <div className="space-y-2 pt-1">
             <div className="flex flex-wrap items-center justify-center gap-2.5 sm:gap-3">
               {user ? (
                 <Link
