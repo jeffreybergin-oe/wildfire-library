@@ -13,7 +13,6 @@ export default function Navbar() {
   const [displayName, setDisplayName] = useState('');
 
   useEffect(() => {
-    // 1. Get initial session
     async function checkUser() {
       const { data: { session } } = await supabase.auth.getSession();
       if (session?.user) {
@@ -38,7 +37,6 @@ export default function Navbar() {
 
     checkUser();
 
-    // 2. Listen for auth state changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       if (session?.user) {
         setUser(session.user);
@@ -60,15 +58,15 @@ export default function Navbar() {
   return (
     <nav className="bg-white border-b border-stone-200 sticky top-0 z-50">
       <div className="max-w-6xl mx-auto px-4 sm:px-6">
-        <div className="flex items-center justify-between h-15">
+        <div className="flex items-center justify-between h-16 sm:h-20">
           {/* Brand Logo */}
-          <Link href="/" className="flex items-center gap-2.5 group">
+          <Link href="/" className="flex items-center gap-3 group shrink-0">
             <img
               src="/WF_Circle_Logo.png"
               alt="Wildfire Library"
-              className="w-8 h-8 sm:w-9 sm:h-9 rounded-full object-contain shrink-0"
+              className="h-11 sm:h-12 w-auto object-contain shrink-0"
             />
-            <span className="font-serif font-bold text-lg text-stone-900 tracking-tight group-hover:text-amber-800 transition">
+            <span className="font-serif font-bold text-lg sm:text-xl text-stone-900 tracking-tight group-hover:text-amber-800 transition">
               Wildfire Library
             </span>
           </Link>
