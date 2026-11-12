@@ -60,11 +60,14 @@ export default function Navbar() {
       <div className="max-w-6xl mx-auto px-4 sm:px-6">
         <div className="flex items-center justify-between h-16 sm:h-20">
           {/* Wide Brand Logo (Home Link) */}
-          <Link href="/" className="flex items-center shrink-0">
+          <Link
+            href="/"
+            className="flex items-center h-16 sm:h-20 w-[220px] sm:w-[280px] overflow-hidden shrink-0"
+          >
             <img
               src="/WF_Wide_Logo.png"
               alt="Wildfire Library"
-              className="h-10 sm:h-12 w-auto max-w-[210px] sm:max-w-[260px] object-contain"
+              className="w-full h-full object-contain object-left scale-[2.6] origin-top-left -translate-y-1"
             />
           </Link>
 
