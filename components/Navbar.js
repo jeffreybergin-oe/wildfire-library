@@ -67,16 +67,16 @@ export default function Navbar() {
             <img
               src="/WF_Wide_Logo.png"
               alt="Wildfire Library"
-              className="h-full w-auto object-contain object-left scale-[1.45] origin-left translate-y-1.5"
+              className="h-full w-auto object-contain object-left scale-[1.45] origin-left translate-y-3"
             />
           </Link>
 
           {/* Desktop Links */}
-          <div className="hidden sm:flex items-center gap-5 text-sm font-medium">
+          <div className="hidden sm:flex items-center gap-6 text-base font-semibold">
             <Link
               href="/"
               className={`hover:text-stone-900 transition ${
-                pathname === '/' ? 'text-stone-900 font-bold' : 'text-stone-600'
+                pathname === '/' ? 'text-stone-900 font-bold' : 'text-stone-700'
               }`}
             >
               Catalog
@@ -85,7 +85,7 @@ export default function Navbar() {
             <Link
               href="/add-book"
               className={`inline-flex items-center gap-1.5 hover:text-stone-900 transition ${
-                pathname === '/add-book' ? 'text-stone-900 font-bold' : 'text-stone-600'
+                pathname === '/add-book' ? 'text-stone-900 font-bold' : 'text-stone-700'
               }`}
             >
               <PlusCircle className="w-4 h-4 text-amber-600" />
@@ -94,14 +94,14 @@ export default function Navbar() {
 
             {/* Auth / Reader status */}
             {user ? (
-              <div className="flex items-center gap-3.5 pl-4 border-l border-stone-200">
+              <div className="flex items-center gap-4 pl-5 border-l border-stone-200">
                 <Link
                   href="/profile"
-                  className={`inline-flex items-center gap-1.5 hover:text-stone-900 transition ${
-                    pathname === '/profile' ? 'text-stone-900 font-bold' : 'text-stone-700'
+                  className={`inline-flex items-center gap-2 hover:text-stone-900 transition ${
+                    pathname === '/profile' ? 'text-stone-900 font-bold' : 'text-stone-800'
                   }`}
                 >
-                  <User className="w-4 h-4 text-stone-400" />
+                  <User className="w-4 h-4 text-amber-600" />
                   <span>{displayName}</span>
                 </Link>
                 <button
@@ -115,9 +115,9 @@ export default function Navbar() {
             ) : (
               <Link
                 href="/login"
-                className="inline-flex items-center gap-1.5 text-stone-700 hover:text-stone-900 px-3.5 py-1.5 rounded-lg border border-stone-200 hover:bg-stone-50 transition"
+                className="inline-flex items-center gap-2 bg-stone-900 hover:bg-stone-800 text-white px-4 py-2 rounded-xl text-sm font-bold shadow-2xs transition"
               >
-                <LogIn className="w-4 h-4 text-stone-500" />
+                <LogIn className="w-4 h-4 text-amber-400" />
                 <span>Sign In</span>
               </Link>
             )}
@@ -131,7 +131,7 @@ export default function Navbar() {
               className="p-2 text-stone-700 hover:bg-stone-100 rounded-lg transition"
               aria-label="Toggle navigation menu"
             >
-              {mobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
+              {mobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
             </button>
           </div>
         </div>
@@ -139,7 +139,7 @@ export default function Navbar() {
 
       {/* Mobile Menu */}
       {mobileMenuOpen && (
-        <div className="sm:hidden border-t border-stone-100 bg-white px-4 py-3.5 space-y-2.5 text-sm">
+        <div className="sm:hidden border-t border-stone-100 bg-white px-4 py-4 space-y-3 text-base font-medium">
           <Link
             href="/"
             onClick={() => setMobileMenuOpen(false)}
@@ -159,17 +159,17 @@ export default function Navbar() {
             Add Book
           </Link>
           {user ? (
-            <div className="pt-2.5 border-t border-stone-100 flex items-center justify-between">
+            <div className="pt-3 border-t border-stone-100 flex items-center justify-between">
               <Link
                 href="/profile"
                 onClick={() => setMobileMenuOpen(false)}
-                className="font-semibold text-stone-900 py-1"
+                className="font-bold text-stone-900 py-1"
               >
                 {displayName} (Dashboard)
               </Link>
               <button
                 onClick={handleSignOut}
-                className="text-stone-500 hover:text-stone-800 py-1"
+                className="text-sm text-stone-500 hover:text-stone-800 py-1"
               >
                 Sign Out
               </button>
@@ -179,7 +179,7 @@ export default function Navbar() {
               <Link
                 href="/login"
                 onClick={() => setMobileMenuOpen(false)}
-                className="block py-1.5 text-amber-700 font-semibold"
+                className="block py-2 text-center bg-stone-900 text-white rounded-xl font-bold"
               >
                 Sign In
               </Link>
