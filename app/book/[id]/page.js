@@ -867,19 +867,34 @@ export default function BookDetailPage() {
         </div>
       )}
 
-      {/* Printable Bookplate */}
+      {/* Printable 3" x 3" Bookplate */}
       <div className="hidden print:block fixed inset-0 bg-white p-6">
         <div className="w-[3in] h-[3in] border-2 border-dashed border-stone-900 p-3 mx-auto flex flex-col justify-between items-center text-center">
-          <div className="space-y-0.5">
-            <p className="font-serif font-bold text-sm text-stone-900">Wildfire Library</p>
-            <p className="text-[9px] uppercase tracking-widest text-stone-500">Books in the Wild</p>
+          <div className="w-full space-y-1">
+            <img
+              src="/WF_Main_Logo.png"
+              alt="Wildfire Library"
+              className="h-9 w-auto mx-auto object-contain"
+            />
+            <div className="pt-0.5 border-t border-stone-200">
+              <p className="font-serif font-bold text-[11px] text-stone-900 line-clamp-1 leading-tight">
+                {book.title}
+              </p>
+              <p className="text-[9px] text-stone-600 line-clamp-1">
+                by {book.author}
+              </p>
+            </div>
           </div>
-          <div className="my-1">
-            <img src={qrCodeApiUrl} alt="Scan QR" className="w-24 h-24 mx-auto" />
+
+          <div className="my-0.5">
+            <img src={qrCodeApiUrl} alt="Scan QR" className="w-20 h-20 mx-auto" />
           </div>
+
           <div className="space-y-0.5">
-            <p className="font-mono font-bold text-xs text-stone-900">{displayId}</p>
-            <p className="text-[8px] text-stone-600">Scan to read journey &amp; log where you pass it</p>
+            <p className="font-mono font-bold text-[11px] text-stone-900">{displayId}</p>
+            <p className="text-[8px] text-stone-600 leading-tight">
+              Scan to read journey &amp; log where you pass it
+            </p>
           </div>
         </div>
       </div>
