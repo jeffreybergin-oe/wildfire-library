@@ -868,7 +868,7 @@ export default function BookDetailPage() {
       )}
 
       {/* Printable 3" x 3" Bookplate */}
-      <div className="hidden print:block fixed inset-0 bg-white p-6">
+      <div className="hidden print:block fixed inset-0 bg-white pt-[3.5in] px-6">
         <div className="w-[3in] h-[3in] border-2 border-dashed border-stone-900 p-3 mx-auto flex flex-col justify-between items-center text-center">
           <div className="w-full space-y-1">
             <img
