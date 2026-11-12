@@ -67,7 +67,7 @@ export default function Navbar() {
             <img
               src="/WF_Wide_Logo.png"
               alt="Wildfire Library"
-              className="w-full h-full object-contain object-left scale-[2.6] origin-top-left -translate-y-1"
+              className="h-full w-auto object-contain object-left scale-[1.45] origin-left"
             />
           </Link>
 
