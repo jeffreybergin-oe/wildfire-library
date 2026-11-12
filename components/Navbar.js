@@ -59,16 +59,13 @@ export default function Navbar() {
     <nav className="bg-white border-b border-stone-200 sticky top-0 z-50">
       <div className="max-w-6xl mx-auto px-4 sm:px-6">
         <div className="flex items-center justify-between h-16 sm:h-20">
-          {/* Brand Logo */}
-          <Link href="/" className="flex items-center gap-3 group shrink-0">
+          {/* Wide Brand Logo (Home Link) */}
+          <Link href="/" className="flex items-center shrink-0">
             <img
-              src="/WF_Circle_Logo.png"
+              src="/WF_Wide_Logo.png"
               alt="Wildfire Library"
-              className="h-11 sm:h-12 w-auto object-contain shrink-0"
+              className="h-10 sm:h-12 w-auto max-w-[210px] sm:max-w-[260px] object-contain"
             />
-            <span className="font-serif font-bold text-lg sm:text-xl text-stone-900 tracking-tight group-hover:text-amber-800 transition">
-              Wildfire Library
-            </span>
           </Link>
 
           {/* Desktop Links */}
