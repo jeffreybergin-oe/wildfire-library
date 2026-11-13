@@ -1,9 +1,10 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import Link from 'next/link';
 import { supabase } from '../../lib/supabase';
-import { Search, BookCheck, CheckCircle2, AlertCircle, Loader2, ArrowLeft, Printer, ExternalLink } from 'lucide-react';
+import IsbnScannerModal from '../../components/IsbnScannerModal';
+import { Search, BookCheck, CheckCircle2, AlertCircle, Loader2, ArrowLeft, Printer, ExternalLink, Camera } from 'lucide-react';
 
 const GENRES = [
   'Fiction & Literature',
@@ -26,7 +27,8 @@ export default function AddBookPage() {
   const [coverUrl, setCoverUrl] = useState('');
   const [releaseLocation, setReleaseLocation] = useState('');
 
-  // Lookup & Submit States
+  // Lookup, Scanner & Submit States
+  const [scannerOpen, setScannerOpen] = useState(false);
   const [lookingUp, setLookingUp] = useState(false);
   const [lookupMessage, setLookupMessage] = useState(null);
   const [submitting, setSubmitting] = useState(false);
@@ -69,8 +71,9 @@ export default function AddBookPage() {
     loadCurator();
   }, []);
 
-  const handleLookupIsbn = async () => {
-    const cleanedIsbn = isbn.replace(/[^0-9X]/gi, '').trim();
+  const handleLookupIsbn = useCallback(async (overrideIsbn) => {
+    const rawValue = typeof overrideIsbn === 'string' ? overrideIsbn : isbn;
+    const cleanedIsbn = rawValue.replace(/[^0-9X]/gi, '').trim();
     if (!cleanedIsbn) {
       setLookupMessage({ type: 'error', text: 'Please enter a valid ISBN.' });
       return;
@@ -107,7 +110,16 @@ export default function AddBookPage() {
     } finally {
       setLookingUp(false);
     }
-  };
+  }, [isbn]);
+
+  const handleScanSuccess = useCallback((scannedCode) => {
+    setIsbn(scannedCode);
+    handleLookupIsbn(scannedCode);
+  }, [handleLookupIsbn]);
+
+  const handleCloseScanner = useCallback(() => {
+    setScannerOpen(false);
+  }, []);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -321,11 +333,20 @@ export default function AddBookPage() {
                   value={isbn}
                   onChange={(e) => setIsbn(e.target.value)}
                   placeholder="Scan or enter 10 or 13-digit ISBN"
-                  className="flex-1 px-3 py-2 text-sm bg-stone-50 border border-stone-200 rounded-xl focus:border-amber-600 focus:bg-white outline-none transition font-mono"
+                  className="flex-1 min-w-0 px-3 py-2 text-sm bg-stone-50 border border-stone-200 rounded-xl focus:border-amber-600 focus:bg-white outline-none transition font-mono"
                 />
                 <button
                   type="button"
-                  onClick={handleLookupIsbn}
+                  onClick={() => setScannerOpen(true)}
+                  className="sm:hidden px-3 py-2 bg-amber-600 hover:bg-amber-700 text-white text-xs font-semibold rounded-xl transition flex items-center gap-1.5 shrink-0 cursor-pointer"
+                  aria-label="Scan ISBN barcode with camera"
+                >
+                  <Camera className="w-3.5 h-3.5" />
+                  Scan
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleLookupIsbn()}
                   disabled={lookingUp || !isbn.trim()}
                   className="px-4 py-2 bg-stone-900 hover:bg-amber-600 disabled:opacity-50 text-white text-xs font-semibold rounded-xl transition flex items-center gap-1.5 shrink-0 cursor-pointer"
                 >
@@ -444,6 +465,13 @@ export default function AddBookPage() {
           </div>
         )}
       </div>
+
+      {/* Mobile Camera ISBN Scanner Modal */}
+      <IsbnScannerModal
+        isOpen={scannerOpen}
+        onClose={handleCloseScanner}
+        onScanSuccess={handleScanSuccess}
+      />
     </>
   );
 }
