@@ -140,7 +140,7 @@ export default function AddBookPage() {
         user_id: curator ? curator.id : null,
         curator_name: curator ? curator.displayName : 'Anonymous Curator',
         curator_avatar: curator ? curator.avatar : '📖',
-        status: 'Ready for Next Reader',
+        status: 'Not Released',
         created_at: new Date().toISOString(),
       };
 
