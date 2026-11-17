@@ -236,10 +236,7 @@ export default function BookDetailPage() {
       }
 
       // Update book status badge depending on event
-      if (
-        newStop.status_event === 'Ready to Pass Along' ||
-        newStop.status_event === 'Finished Reading'
-      ) {
+      if (newStop.status_event === 'Done Reading and Ready to Pass') {
         await supabase
           .from('books')
           .update({ status: 'Ready for Next Reader' })
@@ -573,19 +570,22 @@ export default function BookDetailPage() {
                 ? new Date(stop.created_at || stop.date).toLocaleDateString()
                 : null;
 
-              const dotColor =
-                stop.status_event === 'Ready to Pass Along'
-                  ? 'bg-emerald-500'
-                  : stop.status_event === 'Just Picked Up Book'
-                  ? 'bg-amber-500'
-                  : 'bg-stone-500';
+              const isReadyEvent =
+                stop.status_event === 'Done Reading and Ready to Pass' ||
+                stop.status_event === 'Ready to Pass Along' ||
+                stop.status_event === 'Finished Reading';
 
-              const eventBadgeStyle =
-                stop.status_event === 'Ready to Pass Along'
-                  ? 'bg-emerald-50 text-emerald-800 border border-emerald-200'
-                  : stop.status_event === 'Just Picked Up Book'
-                  ? 'bg-amber-50 text-amber-800 border border-amber-200'
-                  : 'bg-stone-100 text-stone-700 border border-stone-200';
+              const dotColor = isReadyEvent
+                ? 'bg-emerald-500'
+                : stop.status_event === 'Just Picked Up Book'
+                ? 'bg-amber-500'
+                : 'bg-stone-500';
+
+              const eventBadgeStyle = isReadyEvent
+                ? 'bg-emerald-50 text-emerald-800 border border-emerald-200'
+                : stop.status_event === 'Just Picked Up Book'
+                ? 'bg-amber-50 text-amber-800 border border-amber-200'
+                : 'bg-stone-100 text-stone-700 border border-stone-200';
 
               return (
                 <div key={stop.id || idx} className="relative">
@@ -773,8 +773,7 @@ export default function BookDetailPage() {
                   className="w-full px-3 py-2 bg-stone-50 border border-stone-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-amber-500 text-base sm:text-sm text-stone-900 cursor-pointer font-medium"
                 >
                   <option value="Just Picked Up Book">Just Picked Up Book</option>
-                  <option value="Finished Reading">Finished Reading</option>
-                  <option value="Ready to Pass Along">Ready to Pass Along</option>
+                  <option value="Done Reading and Ready to Pass">Done Reading and Ready to Pass</option>
                 </select>
               </div>
 
@@ -783,9 +782,7 @@ export default function BookDetailPage() {
                 <label className="block font-semibold text-stone-700 mb-1">
                   {isJustPickedUp
                     ? 'Where did you find it? (City or Spot)'
-                    : newStop.status_event === 'Ready to Pass Along'
-                    ? 'Drop-off Spot / Next Location'
-                    : 'Where are you reading it? (optional)'}
+                    : 'Where are you passing it along? (City or Drop-off Spot)'}
                 </label>
                 <input
                   type="text"
@@ -816,7 +813,7 @@ export default function BookDetailPage() {
 
                   <div>
                     <label className="block font-semibold text-stone-700 mb-1">
-                      {newStop.status_event === 'Finished Reading' ? 'Book Review & Thoughts' : 'Reader Note for Next Person'}
+                      Book Review &amp; Note for Next Reader
                     </label>
                     <textarea
                       rows="3"
