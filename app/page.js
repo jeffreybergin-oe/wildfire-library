@@ -186,13 +186,12 @@ export default function CatalogPage() {
       <section className="relative overflow-hidden bg-stone-900 text-stone-50 border-b border-stone-800 pt-8 pb-12 sm:pt-11 sm:pb-16 px-4">
         <div className="max-w-4xl mx-auto text-center space-y-3.5 sm:space-y-4">
           <h1 className="font-serif font-bold text-3xl sm:text-5xl text-white tracking-tight leading-tight">
-            Books meant to wander, <br className="hidden sm:inline" />
-            not sit on shelves.
+            Books are meant to wander, <br className="hidden sm:inline" />
+            not sit on shelves
           </h1>
 
           <p className="max-w-xl mx-auto text-stone-300 text-base sm:text-lg leading-relaxed">
-            A free, roaming community library where every book carries a unique passport. 
-            Scan the plate, see where it has traveled, and pass it along for the next reader.
+            A community library where every book is on a journey from reader to reader. Populate the catalog, lend books, and request books to read. Join today!
           </p>
 
           {/* Process-Oriented Hero Buttons */}
