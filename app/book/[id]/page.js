@@ -376,11 +376,10 @@ export default function BookDetailPage() {
     cleanIsbn13.length === 13
       ? `https://bookshop.org/a/${bookshopAffiliateId}/${cleanIsbn13}`
       : `https://bookshop.org/books?keywords=${encodeURIComponent(
-          `${book.title} ${book.author}`
+          `${book.title}${book.author}`
         )}&affiliate=${bookshopAffiliateId}`;
 
   const isJustPickedUp = newStop.status_event === 'Just Picked Up Book';
-  const isReadyForNext = currentStatus === 'Ready for Next Reader';
   const hasMappedStops = stops.some((s) => typeof s.lat === 'number' && typeof s.lng === 'number');
 
   // Quick Stats Calculations
@@ -398,12 +397,46 @@ export default function BookDetailPage() {
   return (
     <div className="max-w-4xl mx-auto px-4 py-6 sm:py-8 space-y-6 sm:space-y-8">
       {/* Top Bar */}
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <Link href="/" className="inline-flex items-center gap-1.5 text-sm font-medium text-stone-600 hover:text-stone-900 transition">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        <Link href="/" className="inline-flex items-center gap-1.5 text-sm font-medium text-stone-600 hover:text-stone-900 transition self-start">
           <ArrowLeft className="w-4 h-4" />
           <span>Catalog</span>
         </Link>
-        <div className="flex flex-wrap items-center gap-2">
+
+        {/* Action Buttons: 2-row balanced grid on mobile, single row on desktop */}
+        <div className="grid grid-cols-2 sm:flex sm:flex-wrap items-center gap-2 w-full sm:w-auto">
+          <button
+            type="button"
+            onClick={() => setShowLogModal(true)}
+            className="col-span-2 sm:col-span-1 inline-flex items-center justify-center gap-1.5 px-3.5 py-2.5 sm:py-2 bg-stone-900 hover:bg-stone-800 text-white rounded-xl text-sm font-semibold shadow-xs transition cursor-pointer"
+          >
+            <PlusCircle className="w-4 h-4 text-amber-400" />
+            <span>Log Reading Stop</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => {
+              setRequestSuccess(false);
+              setShowRequestModal(true);
+            }}
+            className="inline-flex items-center justify-center gap-1.5 px-3.5 py-2.5 sm:py-2 bg-amber-600 hover:bg-amber-700 text-white rounded-xl text-sm font-semibold shadow-xs transition cursor-pointer"
+          >
+            <Send className="w-4 h-4" />
+            <span>Request Book</span>
+          </button>
+
+          <a
+            href={bookshopUrl}
+            target="_blank"
+            rel="noopener noreferrer sponsored"
+            className="inline-flex items-center justify-center gap-1.5 px-3.5 py-2.5 sm:py-2 bg-amber-50 hover:bg-amber-100 border border-amber-300 text-amber-950 rounded-xl text-sm font-semibold transition"
+            title="Supports Wildfire Library at no extra cost to you"
+          >
+            <span>Buy a Copy</span>
+            <ExternalLink className="w-3.5 h-3.5 text-amber-700" />
+          </a>
+
           <button
             type="button"
             onClick={() => window.print()}
@@ -411,33 +444,6 @@ export default function BookDetailPage() {
           >
             <Printer className="w-4 h-4 text-stone-500" />
             <span>Print Bookplate</span>
-          </button>
-          <button
-            type="button"
-            onClick={() => {
-              setRequestSuccess(false);
-              setShowRequestModal(true);
-            }}
-            className={`inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-sm font-semibold transition cursor-pointer ${
-              isReadyForNext
-                ? 'bg-amber-600 hover:bg-amber-700 text-white shadow-xs'
-                : 'bg-white border border-stone-200 hover:bg-stone-50 text-stone-700'
-            }`}
-          >
-            <Send className="w-4 h-4" />
-            <span>Request Book</span>
-          </button>
-          <button
-            type="button"
-            onClick={() => setShowLogModal(true)}
-            className={`inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-sm font-semibold transition cursor-pointer ${
-              isReadyForNext
-                ? 'bg-white border border-stone-200 hover:bg-stone-50 text-stone-700'
-                : 'bg-stone-900 hover:bg-stone-800 text-white shadow-xs'
-            }`}
-          >
-            <PlusCircle className="w-4 h-4" />
-            <span>Log Reading Stop</span>
           </button>
         </div>
       </div>
@@ -471,36 +477,23 @@ export default function BookDetailPage() {
               <h1 className="font-serif font-bold text-2xl sm:text-3xl text-stone-900 leading-snug">{book.title}</h1>
               <p className="text-sm sm:text-base text-stone-600 mt-0.5">by {book.author}</p>
             </div>
-            <div className="pt-2.5 border-t border-stone-100 flex flex-wrap items-center justify-between gap-y-2 gap-x-5 text-xs sm:text-sm text-stone-600">
-              <div className="flex flex-wrap gap-y-2 gap-x-5">
-                <div>
-                  <span className="text-stone-400">Released by: </span>
-                  <span className="text-stone-800 font-medium">{book.curator_name || 'Reader'}</span>
-                </div>
-                {book.release_location && (
-                  <div className="flex items-center gap-1">
-                    <MapPin className="w-4 h-4 text-stone-400 shrink-0" />
-                    <span>{book.release_location}</span>
-                  </div>
-                )}
-                {book.created_at && (
-                  <div className="flex items-center gap-1">
-                    <Calendar className="w-4 h-4 text-stone-400 shrink-0" />
-                    <span>{new Date(book.created_at).toLocaleDateString()}</span>
-                  </div>
-                )}
+            <div className="pt-2.5 border-t border-stone-100 flex flex-wrap gap-y-2 gap-x-5 text-xs sm:text-sm text-stone-600">
+              <div>
+                <span className="text-stone-400">Released by: </span>
+                <span className="text-stone-800 font-medium">{book.curator_name || 'Reader'}</span>
               </div>
-
-              <a
-                href={bookshopUrl}
-                target="_blank"
-                rel="noopener noreferrer sponsored"
-                className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-stone-50 hover:bg-amber-50 border border-stone-200 hover:border-amber-300 text-xs font-medium text-stone-700 hover:text-amber-900 transition"
-                title="Supports Wildfire Library at no extra cost to you"
-              >
-                <span>Buy a Copy</span>
-                <ExternalLink className="w-3 h-3 text-stone-400" />
-              </a>
+              {book.release_location && (
+                <div className="flex items-center gap-1">
+                  <MapPin className="w-4 h-4 text-stone-400 shrink-0" />
+                  <span>{book.release_location}</span>
+                </div>
+              )}
+              {book.created_at && (
+                <div className="flex items-center gap-1">
+                  <Calendar className="w-4 h-4 text-stone-400 shrink-0" />
+                  <span>{new Date(book.created_at).toLocaleDateString()}</span>
+                </div>
+              )}
             </div>
           </div>
         </div>
@@ -730,195 +723,4 @@ export default function BookDetailPage() {
                   <button
                     type="button"
                     onClick={() => setShowRequestModal(false)}
-                    className="px-3.5 py-2 border border-stone-200 text-stone-700 rounded-xl text-sm font-medium hover:bg-stone-50 cursor-pointer"
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    type="submit"
-                    disabled={submittingRequest}
-                    className="px-4 py-2 bg-amber-600 hover:bg-amber-700 disabled:bg-stone-300 text-white rounded-xl text-sm font-semibold cursor-pointer shadow-xs"
-                  >
-                    {submittingRequest ? 'Sending...' : 'Send Request'}
-                  </button>
-                </div>
-              </form>
-            )}
-          </div>
-        </div>
-      )}
-
-      {/* Log Modal */}
-      {showLogModal && (
-        <div className="fixed inset-0 z-50 bg-stone-900/50 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="bg-white border border-stone-200 rounded-2xl p-5 sm:p-6 max-w-md w-full max-h-[90vh] overflow-y-auto space-y-4 shadow-xl">
-            <div className="flex items-center justify-between pb-2.5 border-b border-stone-100">
-              <h3 className="font-serif font-bold text-lg text-stone-900">Log Reading Stop</h3>
-              <button
-                type="button"
-                onClick={() => setShowLogModal(false)}
-                className="text-stone-400 hover:text-stone-700 text-base p-1 cursor-pointer"
-              >
-                ✕
-              </button>
-            </div>
-            <form onSubmit={handleLogStop} className="space-y-3.5 text-sm">
-              {/* Name & Email (Pre-filled if logged in) */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <div>
-                  <label className="block font-semibold text-stone-700 mb-1">Your Name</label>
-                  <input
-                    type="text"
-                    required
-                    placeholder="e.g. Reader"
-                    value={newStop.reader_name}
-                    onChange={(e) => setNewStop({ ...newStop, reader_name: e.target.value })}
-                    className="w-full px-3 py-2 bg-stone-50 border border-stone-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-amber-500 text-base sm:text-sm text-stone-900"
-                  />
-                </div>
-                <div>
-                  <label className="block font-semibold text-stone-700 mb-1">Your Email</label>
-                  <input
-                    type="email"
-                    placeholder="name@example.com"
-                    value={newStop.reader_email}
-                    onChange={(e) => setNewStop({ ...newStop, reader_email: e.target.value })}
-                    className="w-full px-3 py-2 bg-stone-50 border border-stone-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-amber-500 text-base sm:text-sm text-stone-900"
-                  />
-                </div>
-              </div>
-
-              {/* Status Event Selector */}
-              <div>
-                <label className="block font-semibold text-stone-700 mb-1">Status Event</label>
-                <select
-                  value={newStop.status_event}
-                  onChange={(e) => setNewStop({ ...newStop, status_event: e.target.value })}
-                  className="w-full px-3 py-2 bg-stone-50 border border-stone-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-amber-500 text-base sm:text-sm text-stone-900 cursor-pointer font-medium"
-                >
-                  <option value="Just Picked Up Book">Just Picked Up Book</option>
-                  <option value="Done Reading and Ready to Pass">Done Reading and Ready to Pass</option>
-                </select>
-              </div>
-
-              {/* Location (Always visible so pickups also appear on the map) */}
-              <div>
-                <label className="block font-semibold text-stone-700 mb-1">
-                  {isJustPickedUp
-                    ? 'Where did you find it? (City or Spot)'
-                    : 'Where are you passing it along? (City or Drop-off Spot)'}
-                </label>
-                <input
-                  type="text"
-                  placeholder="e.g. Syracuse, NY or Elm St Little Free Library"
-                  value={newStop.location}
-                  onChange={(e) => setNewStop({ ...newStop, location: e.target.value })}
-                  className="w-full px-3 py-2 bg-stone-50 border border-stone-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-amber-500 text-base sm:text-sm text-stone-900"
-                />
-              </div>
-
-              {/* Conditional Fields: Hidden if "Just Picked Up Book" */}
-              {!isJustPickedUp && (
-                <>
-                  <div>
-                    <label className="block font-semibold text-stone-700 mb-1">Rating (1-5)</label>
-                    <select
-                      value={newStop.rating}
-                      onChange={(e) => setNewStop({ ...newStop, rating: e.target.value })}
-                      className="w-full px-3 py-2 bg-stone-50 border border-stone-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-amber-500 text-base sm:text-sm text-stone-900 cursor-pointer"
-                    >
-                      <option value="5">★★★★★ (5/5)</option>
-                      <option value="4">★★★★☆ (4/5)</option>
-                      <option value="3">★★★☆☆ (3/5)</option>
-                      <option value="2">★★☆☆☆ (2/5)</option>
-                      <option value="1">★☆☆☆☆ (1/5)</option>
-                    </select>
-                  </div>
-
-                  <div>
-                    <label className="block font-semibold text-stone-700 mb-1">
-                      Book Review &amp; Note for Next Reader
-                    </label>
-                    <textarea
-                      rows="3"
-                      placeholder="What resonated with you? Any favorite quotes or thoughts?"
-                      value={newStop.takeaway}
-                      onChange={(e) => setNewStop({ ...newStop, takeaway: e.target.value })}
-                      className="w-full px-3 py-2 bg-stone-50 border border-stone-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-amber-500 text-base sm:text-sm text-stone-900"
-                    />
-                  </div>
-                </>
-              )}
-
-              {/* Follow This Book Checkbox */}
-              {newStop.reader_email.trim() && (
-                <label className="flex items-center gap-2.5 text-stone-700 cursor-pointer pt-1">
-                  <input
-                    type="checkbox"
-                    checked={newStop.followBook}
-                    onChange={(e) => setNewStop({ ...newStop, followBook: e.target.checked })}
-                    className="w-4 h-4 rounded border-stone-300 text-amber-600 focus:ring-amber-500"
-                  />
-                  <span>Email me when this book moves to its next stop</span>
-                </label>
-              )}
-
-              <div className="flex items-center justify-end gap-2 pt-2">
-                <button
-                  type="button"
-                  onClick={() => setShowLogModal(false)}
-                  className="px-3.5 py-2 border border-stone-200 text-stone-700 rounded-xl text-sm font-medium hover:bg-stone-50 cursor-pointer"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  disabled={submittingStop}
-                  className="px-4 py-2 bg-stone-900 hover:bg-stone-800 disabled:bg-stone-300 text-white rounded-xl text-sm font-semibold flex items-center gap-1.5 cursor-pointer shadow-xs"
-                >
-                  {submittingStop ? (
-                    <span>Saving...</span>
-                  ) : (
-                    <span>{isJustPickedUp ? 'Confirm Pickup' : 'Submit & Mark Ready'}</span>
-                  )}
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
-
-      {/* Printable 3" x 3" Bookplate */}
-      <div className="hidden print:block fixed inset-0 bg-white pt-[3.5in] px-6">
-        <div className="w-[3in] h-[3in] border-2 border-dashed border-stone-900 p-3 mx-auto flex flex-col justify-between items-center text-center">
-          <div className="w-full space-y-1">
-            <img
-              src="/WF_Main_Logo.png"
-              alt="Wildfire Library"
-              className="h-9 w-auto mx-auto object-contain"
-            />
-            <div className="pt-0.5 border-t border-stone-200">
-              <p className="font-serif font-bold text-[11px] text-stone-900 line-clamp-1 leading-tight">
-                {book.title}
-              </p>
-              <p className="text-[9px] text-stone-600 line-clamp-1">
-                by {book.author}
-              </p>
-            </div>
-          </div>
-
-          <div className="my-0.5">
-            <img src={qrCodeApiUrl} alt="Scan QR" className="w-20 h-20 mx-auto" />
-          </div>
-
-          <div className="space-y-0.5">
-            <p className="font-mono font-bold text-[11px] text-stone-900">{displayId}</p>
-            <p className="text-[8px] text-stone-600 leading-tight">
-              Scan to read journey &amp; log where you pass it
-            </p>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-}
+                    className="px-3.5 py-2 border border-stone-200 text-stone-700 rounded-xl text-sm font
