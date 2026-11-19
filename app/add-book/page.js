@@ -173,47 +173,13 @@ export default function AddBookPage() {
   const bookIdToDisplay = registeredBook?.book_id || '';
   const trackingUrl = bookIdToDisplay ? `${origin}/book/${bookIdToDisplay}` : '';
   const qrCodeUrl = trackingUrl
-    ? `https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${encodeURIComponent(trackingUrl)}`
+    ? `https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=${encodeURIComponent(trackingUrl)}&margin=0`
     : '';
 
   return (
     <>
-      {/* Print-specific style: isolates the 3x3 plate and hides everything else */}
-      <style jsx global>{`
-        @media print {
-          body * {
-            visibility: hidden !important;
-          }
-          #print-plate, #print-plate * {
-            visibility: visible !important;
-          }
-          #print-plate {
-            position: absolute !important;
-            left: 0.5in !important;
-            top: 0.5in !important;
-            width: 3in !important;
-            height: 3in !important;
-            max-width: 3in !important;
-            max-height: 3in !important;
-            padding: 0.15in !important;
-            border: 2px dashed #1c1917 !important;
-            border-radius: 12px !important;
-            display: flex !important;
-            flex-direction: column !important;
-            align-items: center !important;
-            justify-content: space-between !important;
-            background: #ffffff !important;
-            box-shadow: none !important;
-            page-break-inside: avoid !important;
-          }
-          .no-print {
-            display: none !important;
-          }
-        }
-      `}</style>
-
-      <div className="max-w-lg mx-auto py-10 px-4 sm:px-6">
-        <div className="no-print">
+      <div className="max-w-lg mx-auto py-10 px-4 sm:px-6 print:hidden">
+        <div>
           <Link
             href="/"
             className="inline-flex items-center gap-2 text-xs font-medium text-stone-500 hover:text-stone-800 transition mb-6"
@@ -225,48 +191,48 @@ export default function AddBookPage() {
 
         {registeredBook ? (
           <div className="bg-white border border-stone-200 rounded-2xl p-6 sm:p-8 text-center shadow-sm">
-            <div className="no-print">
+            <div>
               <div className="w-12 h-12 bg-emerald-50 border border-emerald-200 text-emerald-600 rounded-2xl flex items-center justify-center mx-auto mb-4">
                 <CheckCircle2 className="w-6 h-6" />
               </div>
               <h2 className="font-serif text-2xl font-bold text-stone-900 mb-1">Book Registered!</h2>
               <p className="text-xs text-stone-500 max-w-sm mx-auto mb-6">
-                Print this 3" × 3" bookplate to stick inside the front cover before releasing it.
+                Print this 3&quot; × 3&quot; bookplate to stick inside the front cover before releasing it.
               </p>
             </div>
 
-            {/* The 3x3 Bookplate Container */}
-            <div
-              id="print-plate"
-              className="bg-amber-50/60 border-2 border-stone-800 rounded-2xl p-4 mb-6 max-w-[280px] mx-auto text-center shadow-sm"
-            >
-              <div>
-                <div className="font-serif font-bold text-sm sm:text-base text-stone-900 flex items-center justify-center gap-1">
-                  <span>🔥</span> Wildfire Library
-                </div>
-                <p className="text-[10px] text-stone-600 tracking-tight">Read • Log Journey • Pass Along</p>
-              </div>
-
-              {/* QR Code scaled for 3in dimension */}
-              <div className="bg-white p-2 rounded-xl border border-stone-200 inline-block shadow-xs my-2 print:my-1">
+            {/* On-Screen 3" x 3" Bookplate Preview (Matches Printable Plate) */}
+            <div className="w-[3in] h-[3in] border-2 border-dashed border-stone-900 bg-white p-3 mx-auto mb-6 flex flex-col justify-between items-center text-center shadow-xs">
+              <div className="w-full space-y-1">
                 <img
-                  src={qrCodeUrl}
-                  alt={`QR code for ${bookIdToDisplay}`}
-                  className="w-32 h-32 print:w-28 print:h-28 object-contain mx-auto"
+                  src="/WF_Main_Logo.png"
+                  alt="Wildfire Library"
+                  className="h-9 w-auto mx-auto object-contain"
                 />
+                <div className="pt-0.5 border-t border-stone-200">
+                  <p className="font-serif font-bold text-[11px] text-stone-900 line-clamp-1 leading-tight">
+                    {registeredBook.title}
+                  </p>
+                  <p className="text-[9px] text-stone-600 line-clamp-1">
+                    by {registeredBook.author}
+                  </p>
+                </div>
               </div>
 
-              <div>
-                <div className="text-[9px] font-bold uppercase tracking-wider text-stone-500">Book ID</div>
-                <div className="font-mono text-lg print:text-base font-extrabold tracking-widest text-stone-900">
-                  {bookIdToDisplay}
-                </div>
-                <p className="text-[9px] text-stone-400 font-mono tracking-tighter">wildfire-library.vercel.app</p>
+              <div className="my-0.5">
+                <img src={qrCodeUrl} alt={`QR code for ${bookIdToDisplay}`} className="w-20 h-20 mx-auto" />
+              </div>
+
+              <div className="space-y-0.5">
+                <p className="font-mono font-bold text-[11px] text-stone-900">{bookIdToDisplay}</p>
+                <p className="text-[8px] text-stone-600 leading-tight">
+                  Scan to read journey &amp; log where you pass it
+                </p>
               </div>
             </div>
 
-            {/* Metadata (Visible on screen only; hidden when printed) */}
-            <div className="no-print text-xs text-stone-600 bg-stone-50 rounded-xl p-4 mb-6 text-left space-y-1">
+            {/* Metadata */}
+            <div className="text-xs text-stone-600 bg-stone-50 rounded-xl p-4 mb-6 text-left space-y-1">
               <div><strong>Title:</strong> {registeredBook.title}</div>
               <div><strong>Author:</strong> {registeredBook.author}</div>
               <div><strong>Genre:</strong> {registeredBook.genre}</div>
@@ -275,15 +241,17 @@ export default function AddBookPage() {
             </div>
 
             {/* Action Buttons */}
-            <div className="no-print flex flex-col sm:flex-row gap-3 justify-center">
+            <div className="flex flex-col sm:flex-row gap-3 justify-center">
               <button
+                type="button"
                 onClick={() => window.print()}
                 className="px-4 py-2 bg-stone-900 hover:bg-amber-600 text-white text-xs font-semibold rounded-xl transition flex items-center justify-center gap-1.5 cursor-pointer shadow-sm"
               >
                 <Printer className="w-3.5 h-3.5" />
-                Print 3" × 3" Bookplate
+                Print 3&quot; × 3&quot; Bookplate
               </button>
               <button
+                type="button"
                 onClick={() => {
                   setRegisteredBook(null);
                   setIsbn('');
@@ -465,6 +433,40 @@ export default function AddBookPage() {
           </div>
         )}
       </div>
+
+      {/* Printable 3" x 3" Bookplate (Synced with app/book/[id]/page.js) */}
+      {registeredBook && (
+        <div className="hidden print:block fixed inset-0 bg-white pt-[3.5in] px-6">
+          <div className="w-[3in] h-[3in] border-2 border-dashed border-stone-900 p-3 mx-auto flex flex-col justify-between items-center text-center">
+            <div className="w-full space-y-1">
+              <img
+                src="/WF_Main_Logo.png"
+                alt="Wildfire Library"
+                className="h-9 w-auto mx-auto object-contain"
+              />
+              <div className="pt-0.5 border-t border-stone-200">
+                <p className="font-serif font-bold text-[11px] text-stone-900 line-clamp-1 leading-tight">
+                  {registeredBook.title}
+                </p>
+                <p className="text-[9px] text-stone-600 line-clamp-1">
+                  by {registeredBook.author}
+                </p>
+              </div>
+            </div>
+
+            <div className="my-0.5">
+              <img src={qrCodeUrl} alt="Scan QR" className="w-20 h-20 mx-auto" />
+            </div>
+
+            <div className="space-y-0.5">
+              <p className="font-mono font-bold text-[11px] text-stone-900">{bookIdToDisplay}</p>
+              <p className="text-[8px] text-stone-600 leading-tight">
+                Scan to read journey &amp; log where you pass it
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Mobile Camera ISBN Scanner Modal */}
       <IsbnScannerModal
