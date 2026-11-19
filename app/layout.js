@@ -45,6 +45,9 @@ export default function RootLayout({ children }) {
                 <Youtube className="w-4 h-4" />
               </a>
             </div>
+            <p className="text-[11px] text-stone-400 max-w-md">
+              Disclosure: As a Bookshop.org affiliate, Wildfire Library earns a small commission on qualifying purchases at no extra cost to you.
+            </p>
             <p className="text-xs text-stone-400">
               © {new Date().getFullYear()} Wildfire Library. Built for community book sharing.
             </p>
