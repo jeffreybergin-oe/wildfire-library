@@ -16,7 +16,8 @@ import {
   Calendar,
   ChevronDown,
   ChevronUp,
-  Send
+  Send,
+  ExternalLink
 } from 'lucide-react';
 
 const JourneyMap = dynamic(() => import('../../../components/JourneyMap'), {
@@ -368,6 +369,16 @@ export default function BookDetailPage() {
   const qrTargetUrl = typeof window !== 'undefined' ? `${window.location.origin}/book/${displayId}` : `https://wildfire-library.vercel.app/book/${displayId}`;
   const qrCodeApiUrl = `https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=${encodeURIComponent(qrTargetUrl)}&margin=0`;
 
+  // Bookshop.org Affiliate URL (ISBN-13 direct product page, or title+author fallback)
+  const bookshopAffiliateId = '131677';
+  const cleanIsbn13 = (book.isbn || '').replace(/[^0-9]/g, '');
+  const bookshopUrl =
+    cleanIsbn13.length === 13
+      ? `https://bookshop.org/a/${bookshopAffiliateId}/${cleanIsbn13}`
+      : `https://bookshop.org/books?keywords=${encodeURIComponent(
+          `${book.title} ${book.author}`
+        )}&affiliate=${bookshopAffiliateId}`;
+
   const isJustPickedUp = newStop.status_event === 'Just Picked Up Book';
   const isReadyForNext = currentStatus === 'Ready for Next Reader';
   const hasMappedStops = stops.some((s) => typeof s.lat === 'number' && typeof s.lng === 'number');
@@ -460,23 +471,36 @@ export default function BookDetailPage() {
               <h1 className="font-serif font-bold text-2xl sm:text-3xl text-stone-900 leading-snug">{book.title}</h1>
               <p className="text-sm sm:text-base text-stone-600 mt-0.5">by {book.author}</p>
             </div>
-            <div className="pt-2.5 border-t border-stone-100 flex flex-wrap gap-y-2 gap-x-5 text-xs sm:text-sm text-stone-600">
-              <div>
-                <span className="text-stone-400">Released by: </span>
-                <span className="text-stone-800 font-medium">{book.curator_name || 'Reader'}</span>
+            <div className="pt-2.5 border-t border-stone-100 flex flex-wrap items-center justify-between gap-y-2 gap-x-5 text-xs sm:text-sm text-stone-600">
+              <div className="flex flex-wrap gap-y-2 gap-x-5">
+                <div>
+                  <span className="text-stone-400">Released by: </span>
+                  <span className="text-stone-800 font-medium">{book.curator_name || 'Reader'}</span>
+                </div>
+                {book.release_location && (
+                  <div className="flex items-center gap-1">
+                    <MapPin className="w-4 h-4 text-stone-400 shrink-0" />
+                    <span>{book.release_location}</span>
+                  </div>
+                )}
+                {book.created_at && (
+                  <div className="flex items-center gap-1">
+                    <Calendar className="w-4 h-4 text-stone-400 shrink-0" />
+                    <span>{new Date(book.created_at).toLocaleDateString()}</span>
+                  </div>
+                )}
               </div>
-              {book.release_location && (
-                <div className="flex items-center gap-1">
-                  <MapPin className="w-4 h-4 text-stone-400 shrink-0" />
-                  <span>{book.release_location}</span>
-                </div>
-              )}
-              {book.created_at && (
-                <div className="flex items-center gap-1">
-                  <Calendar className="w-4 h-4 text-stone-400 shrink-0" />
-                  <span>{new Date(book.created_at).toLocaleDateString()}</span>
-                </div>
-              )}
+
+              <a
+                href={bookshopUrl}
+                target="_blank"
+                rel="noopener noreferrer sponsored"
+                className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-stone-50 hover:bg-amber-50 border border-stone-200 hover:border-amber-300 text-xs font-medium text-stone-700 hover:text-amber-900 transition"
+                title="Supports Wildfire Library at no extra cost to you"
+              >
+                <span>Buy a Copy</span>
+                <ExternalLink className="w-3 h-3 text-stone-400" />
+              </a>
             </div>
           </div>
         </div>
@@ -570,18 +594,18 @@ export default function BookDetailPage() {
                 ? new Date(stop.created_at || stop.date).toLocaleDateString()
                 : null;
 
-              const isReadyEvent =
+              const isPassReadyEvent =
                 stop.status_event === 'Done Reading and Ready to Pass' ||
                 stop.status_event === 'Ready to Pass Along' ||
                 stop.status_event === 'Finished Reading';
 
-              const dotColor = isReadyEvent
+              const dotColor = isPassReadyEvent
                 ? 'bg-emerald-500'
                 : stop.status_event === 'Just Picked Up Book'
                 ? 'bg-amber-500'
                 : 'bg-stone-500';
 
-              const eventBadgeStyle = isReadyEvent
+              const eventBadgeStyle = isPassReadyEvent
                 ? 'bg-emerald-50 text-emerald-800 border border-emerald-200'
                 : stop.status_event === 'Just Picked Up Book'
                 ? 'bg-amber-50 text-amber-800 border border-amber-200'
@@ -855,7 +879,7 @@ export default function BookDetailPage() {
                   {submittingStop ? (
                     <span>Saving...</span>
                   ) : (
-                    <span>{isJustPickedUp ? 'Confirm Pickup' : 'Submit Stop'}</span>
+                    <span>{isJustPickedUp ? 'Confirm Pickup' : 'Submit & Mark Ready'}</span>
                   )}
                 </button>
               </div>
