@@ -15,8 +15,6 @@ import {
   Library, 
   AlertCircle, 
   Loader2, 
-  QrCode, 
-  BookOpenCheck, 
   Send,
   ChevronDown,
   ChevronUp
@@ -311,7 +309,7 @@ export default function CatalogPage() {
         </div>
       </section>
 
-      {/* How the Journey Works (Collapsible on Mobile so Catalog sits right below metrics) */}
+      {/* What Wildfire Library Is — 2-Box Overview (Collapsible on Mobile) */}
       <section id="how-it-works" className="max-w-5xl mx-auto px-4">
         <div className="bg-stone-100/90 border border-stone-200 rounded-2xl p-4 sm:p-7 space-y-4 sm:space-y-6">
           {/* Mobile Accordion Header */}
@@ -325,7 +323,7 @@ export default function CatalogPage() {
                 New Here?
               </span>
               <h2 className="font-serif font-bold text-lg text-stone-900">
-                How the Journey Works
+                What Is Wildfire Library?
               </h2>
             </div>
             <span className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg bg-white border border-stone-200 text-xs font-semibold text-stone-700">
@@ -344,61 +342,59 @@ export default function CatalogPage() {
               Simple &amp; Free
             </span>
             <h2 className="font-serif font-bold text-2xl text-stone-900">
-              How the Journey Works
+              Two Ways to Use Wildfire Library
             </h2>
             <p className="text-stone-600 text-sm">
-              No due dates, library cards, or fees—just books traveling hand to hand.
+              No due dates, library cards, or fees—just great books shared by real readers.
             </p>
           </div>
 
           {/* Collapsible Body on Mobile, Always Open on Desktop */}
           <div className={`${showHowItWorksMobile ? 'block' : 'hidden'} md:block space-y-4 sm:space-y-6`}>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-3.5 sm:gap-5">
-              {/* Step 1 */}
-              <div className="bg-white border border-stone-200 rounded-xl p-4 sm:p-5 space-y-2.5 shadow-2xs">
-                <div className="flex items-center justify-between">
-                  <div className="w-9 h-9 rounded-lg bg-amber-100 text-amber-800 flex items-center justify-center">
-                    <QrCode className="w-4 h-4" />
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
+              {/* Box 1: Community Sharing */}
+              <div className="bg-white border border-stone-200 rounded-xl p-5 sm:p-6 flex flex-col justify-between space-y-4 shadow-2xs">
+                <div className="space-y-2.5">
+                  <div className="w-10 h-10 rounded-xl bg-amber-100 text-amber-800 flex items-center justify-center">
+                    <Send className="w-5 h-5" />
                   </div>
-                  <span className="font-mono text-xs font-bold text-stone-400">01</span>
-                </div>
-                <div className="space-y-1">
-                  <h3 className="font-serif font-bold text-base text-stone-900">Find &amp; Scan</h3>
-                  <p className="text-stone-600 text-sm leading-relaxed">
-                    Spot a book in a café, park bench, or little free library. Scan the 3&quot; bookplate QR code to see its backstory.
+                  <h3 className="font-serif font-bold text-lg sm:text-xl text-stone-900">
+                    Community Sharing
+                  </h3>
+                  <p className="text-stone-600 text-sm sm:text-base leading-relaxed">
+                    A catalog of books populated by readers, shared among readers. Lend a book from the catalog, log its journey, pass it along.
                   </p>
+                </div>
+                <div className="pt-1">
+                  <Link
+                    href="/add-book"
+                    className="inline-flex items-center gap-1.5 text-xs sm:text-sm font-semibold text-amber-800 hover:text-amber-950 transition"
+                  >
+                    <span>Release a book into the catalog →</span>
+                  </Link>
                 </div>
               </div>
 
-              {/* Step 2 */}
-              <div className="bg-white border border-stone-200 rounded-xl p-4 sm:p-5 space-y-2.5 shadow-2xs">
-                <div className="flex items-center justify-between">
-                  <div className="w-9 h-9 rounded-lg bg-emerald-100 text-emerald-800 flex items-center justify-center">
-                    <BookOpenCheck className="w-4 h-4" />
+              {/* Box 2: Curated Booklist */}
+              <div className="bg-white border border-stone-200 rounded-xl p-5 sm:p-6 flex flex-col justify-between space-y-4 shadow-2xs">
+                <div className="space-y-2.5">
+                  <div className="w-10 h-10 rounded-xl bg-emerald-100 text-emerald-800 flex items-center justify-center">
+                    <BookOpen className="w-5 h-5" />
                   </div>
-                  <span className="font-mono text-xs font-bold text-stone-400">02</span>
-                </div>
-                <div className="space-y-1">
-                  <h3 className="font-serif font-bold text-base text-stone-900">Confirm Pickup</h3>
-                  <p className="text-stone-600 text-sm leading-relaxed">
-                    Tap &quot;Just Picked Up&quot; to let previous readers know the copy is in good hands. Take your time enjoying the read.
+                  <h3 className="font-serif font-bold text-lg sm:text-xl text-stone-900">
+                    Curated Booklist
+                  </h3>
+                  <p className="text-stone-600 text-sm sm:text-base leading-relaxed">
+                    Search the catalog for books recommended by readers like you and either request a copy to read, or buy your own on the book&apos;s page!
                   </p>
                 </div>
-              </div>
-
-              {/* Step 3 */}
-              <div className="bg-white border border-stone-200 rounded-xl p-4 sm:p-5 space-y-2.5 shadow-2xs">
-                <div className="flex items-center justify-between">
-                  <div className="w-9 h-9 rounded-lg bg-blue-100 text-blue-800 flex items-center justify-center">
-                    <Send className="w-4 h-4" />
-                  </div>
-                  <span className="font-mono text-xs font-bold text-stone-400">03</span>
-                </div>
-                <div className="space-y-1">
-                  <h3 className="font-serif font-bold text-base text-stone-900">Pass It Along</h3>
-                  <p className="text-stone-600 text-sm leading-relaxed">
-                    Leave a quick takeaway note and star rating, then release it in a new spot for someone else to discover.
-                  </p>
+                <div className="pt-1">
+                  <a
+                    href="#catalog-view"
+                    className="inline-flex items-center gap-1.5 text-xs sm:text-sm font-semibold text-emerald-800 hover:text-emerald-950 transition"
+                  >
+                    <span>Browse the community catalog →</span>
+                  </a>
                 </div>
               </div>
             </div>
