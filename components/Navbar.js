@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { supabase } from '../lib/supabase';
-import { PlusCircle, User, LogIn, LogOut, Menu, X } from 'lucide-react';
+import { PlusCircle, User, LogIn, LogOut, Menu, X, Library } from 'lucide-react';
 
 export default function Navbar() {
   const pathname = usePathname();
@@ -83,6 +83,13 @@ export default function Navbar() {
             </Link>
 
             <Link
+              href="/#how-it-works"
+              className="text-stone-700 hover:text-stone-900 transition"
+            >
+              How It Works
+            </Link>
+
+            <Link
               href="/add-book"
               className={`inline-flex items-center gap-1.5 hover:text-stone-900 transition ${
                 pathname === '/add-book' ? 'text-stone-900 font-bold' : 'text-stone-700'
@@ -91,6 +98,18 @@ export default function Navbar() {
               <PlusCircle className="w-4 h-4 text-amber-600" />
               <span>Add Book</span>
             </Link>
+
+            {user && (
+              <Link
+                href="/my-catalog"
+                className={`inline-flex items-center gap-1.5 hover:text-stone-900 transition ${
+                  pathname === '/my-catalog' ? 'text-stone-900 font-bold' : 'text-stone-700'
+                }`}
+              >
+                <Library className="w-4 h-4 text-amber-600" />
+                <span>My Catalog</span>
+              </Link>
+            )}
 
             {/* Auth / Reader status */}
             {user ? (
@@ -150,6 +169,13 @@ export default function Navbar() {
             Catalog
           </Link>
           <Link
+            href="/#how-it-works"
+            onClick={() => setMobileMenuOpen(false)}
+            className="block py-1.5 text-stone-700"
+          >
+            How It Works
+          </Link>
+          <Link
             href="/add-book"
             onClick={() => setMobileMenuOpen(false)}
             className={`block py-1.5 ${
@@ -158,6 +184,17 @@ export default function Navbar() {
           >
             Add Book
           </Link>
+          {user && (
+            <Link
+              href="/my-catalog"
+              onClick={() => setMobileMenuOpen(false)}
+              className={`block py-1.5 ${
+                pathname === '/my-catalog' ? 'font-bold text-stone-900' : 'text-stone-700'
+              }`}
+            >
+              My Catalog
+            </Link>
+          )}
           {user ? (
             <div className="pt-3 border-t border-stone-100 flex items-center justify-between">
               <Link
@@ -165,7 +202,7 @@ export default function Navbar() {
                 onClick={() => setMobileMenuOpen(false)}
                 className="font-bold text-stone-900 py-1"
               >
-                {displayName} (Dashboard)
+                {displayName} (Profile)
               </Link>
               <button
                 onClick={handleSignOut}
